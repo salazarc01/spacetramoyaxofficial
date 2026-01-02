@@ -39,11 +39,11 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos V9 (Actualización Alex Duarte y Notificaciones)
+  // Inicialización de base de datos V10 (Iniciales de usuario y Notificaciones completas)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V9');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V9');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V9');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V10');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V10');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V10');
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
     
@@ -128,10 +128,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V9', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V10', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V9', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V9', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V10', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V10', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
@@ -219,6 +219,21 @@ const App: React.FC = () => {
       </div>
     </header>
   );
+
+  const UserAvatar = ({ user, size = "large" }: { user: User, size?: "small" | "large" }) => {
+    const initials = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    const containerClasses = size === "large" 
+      ? "w-24 h-24 sm:w-32 sm:h-32 rounded-[24px] text-3xl sm:text-5xl" 
+      : "w-12 h-12 rounded-xl text-lg";
+    
+    return (
+      <div className={`${containerClasses} bg-gradient-to-br from-space-purple/30 to-space-blue/30 border border-white/20 flex items-center justify-center shrink-0 shadow-inner`}>
+        <span className="font-orbitron font-black text-white italic tracking-tighter drop-shadow-lg">
+          {initials}
+        </span>
+      </div>
+    );
+  };
 
   const SpaceBankView = () => {
     const [receiverId, setReceiverId] = useState('');
@@ -407,9 +422,9 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
 
         {view === AppView.DASHBOARD && currentUser && (
           <div className="space-y-6 animate-fade-in w-full">
-            <div className="p-8 bg-gradient-to-br from-space-purple/20 to-space-blue/20 border border-white/10 rounded-3xl flex flex-col sm:flex-row justify-between items-center text-white gap-4">
+            <div className="p-8 bg-gradient-to-br from-space-purple/20 to-space-blue/20 border border-white/10 rounded-3xl flex flex-col sm:flex-row justify-between items-center text-white gap-4 shadow-2xl">
               <div className="text-center sm:text-left">
-                <h2 className="text-3xl font-orbitron font-black italic uppercase">HOLA, {currentUser.firstName}</h2>
+                <h2 className="text-3xl font-orbitron font-black italic uppercase tracking-tighter">HOLA, {currentUser.firstName}</h2>
                 <p className="opacity-60 flex items-center justify-center sm:justify-start gap-2 mt-1 text-sm"><Clock size={14} /> {getLocalTime(currentUser.country)}</p>
               </div>
               <div className="text-right">
@@ -418,8 +433,8 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
               </div>
             </div>
 
-            <div className="bg-space-deep border border-space-cyan/30 rounded-3xl p-8 flex flex-col md:flex-row gap-8 items-center text-white">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shrink-0"><UserIcon size={48} className="opacity-20" /></div>
+            <div className="bg-space-deep border border-space-cyan/30 rounded-3xl p-8 flex flex-col md:flex-row gap-8 items-center text-white shadow-xl">
+              <UserAvatar user={currentUser} size="large" />
               <div className="flex-1 w-full text-center md:text-left">
                 <h3 className="text-2xl font-bold">{currentUser.firstName} {currentUser.lastName}</h3>
                 <p className="text-space-cyan font-mono font-bold uppercase bg-space-cyan/10 px-4 py-1 rounded-full inline-block text-xs mt-2">ID: {currentUser.id}</p>
@@ -432,7 +447,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button onClick={() => setView(AppView.SPACEBANK)} className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-6 hover:bg-space-cyan/10 transition-all text-white active:scale-[0.98]">
+              <button onClick={() => setView(AppView.SPACEBANK)} className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-6 hover:bg-space-cyan/10 transition-all text-white active:scale-[0.98] shadow-lg">
                 <div className="flex justify-between items-center w-full">
                   <div className="p-4 bg-space-cyan/10 rounded-2xl"><Wallet className="text-space-cyan" size={24} /></div>
                   <ChevronRight size={20} className="opacity-30" />
@@ -443,7 +458,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
                 </div>
               </button>
               
-              <div className="p-6 sm:p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white">
+              <div className="p-6 sm:p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white shadow-lg">
                 <div className="flex justify-between items-start">
                   <p className="font-orbitron font-bold text-xl uppercase tracking-tighter">Notificaciones</p>
                   <Bell size={20} className="text-space-purple" />
@@ -458,7 +473,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
                           <div className="w-full p-2 flex justify-center">
                              <img 
                                 src={n.imageUrl} 
-                                className="w-full h-auto object-contain border-[3px] border-white rounded-[24px] group-hover:scale-[1.02] transition-transform duration-500 shadow-2xl" 
+                                className="w-full h-auto object-contain border-[3px] border-white rounded-[24px] group-hover:scale-[1.02] transition-transform duration-500 shadow-lg" 
                                 alt="Notificación STX" 
                              />
                           </div>
@@ -512,9 +527,12 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {users.map(u => (
                 <div key={u.id} className="p-6 bg-white/5 border border-white/10 rounded-3xl text-white flex flex-col gap-4">
-                  <div>
-                    <p className="font-bold text-xl">{u.firstName} {u.lastName}</p>
-                    <p className="text-[10px] text-space-cyan font-mono font-bold tracking-widest uppercase">ID: {u.id}</p>
+                  <div className="flex items-center gap-4">
+                    <UserAvatar user={u} size="small" />
+                    <div>
+                      <p className="font-bold text-xl">{u.firstName} {u.lastName}</p>
+                      <p className="text-[10px] text-space-cyan font-mono font-bold tracking-widest uppercase">ID: {u.id}</p>
+                    </div>
                   </div>
                   <div className="bg-black/40 p-3 rounded-xl">
                     <p className="text-[10px] uppercase font-orbitron opacity-40">Saldo Ghost</p>
