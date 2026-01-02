@@ -439,8 +439,8 @@ MOTIVO: ${reason || 'Sin motivo'}`;
                     notifications.filter(n => n.userId === currentUser.id).map(n => (
                       <div key={n.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden text-white flex flex-col shadow-xl animate-fade-in group w-full max-w-[280px] mx-auto">
                         {n.imageUrl && (
-                          <div className="w-full bg-[#02020a] flex items-center justify-center p-1">
-                             <img src={n.imageUrl} className="w-full h-auto max-h-32 object-contain group-hover:scale-105 transition-transform duration-500 rounded-lg" alt="Crédito STX" />
+                          <div className="w-full p-2">
+                             <img src={n.imageUrl} className="w-full h-auto object-contain border-2 border-white rounded-2xl group-hover:scale-[1.02] transition-transform duration-500 shadow-md" alt="Crédito STX" />
                           </div>
                         )}
                         <div className="p-3 space-y-1">
