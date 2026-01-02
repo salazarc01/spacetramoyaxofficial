@@ -39,11 +39,11 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos V14 (Crédito Propietario 0004 y sumatorias)
+  // Inicialización de base de datos V15 (Cambio de Ghost a STX y créditos sumados)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V14');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V14');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V14');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V15');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V15');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V15');
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
     const orgCreditDate = new Date().toISOString();
@@ -114,7 +114,7 @@ const App: React.FC = () => {
         imageUrl: BONUS_IMAGE_2026
       })),
       {
-        id: 'org-credit-0001-v14',
+        id: 'org-credit-0001-v15',
         userId: '0001',
         title: 'CRÉDITO DE ORGANIZACIÓN',
         message: 'Abono especial de parte de la organización de SpaceTramoya X y la Casa de la Tramoya.',
@@ -124,7 +124,7 @@ const App: React.FC = () => {
         imageUrl: BANK_LOGO
       },
       {
-        id: 'org-credit-0002-v14',
+        id: 'org-credit-0002-v15',
         userId: '0002',
         title: 'CRÉDITO DE ORGANIZACIÓN',
         message: 'Abono especial de parte de la organización de SpaceTramoya X y la Casa de la Tramoya.',
@@ -134,9 +134,9 @@ const App: React.FC = () => {
         imageUrl: BANK_LOGO
       },
       {
-        id: 'owner-credit-0004-v14',
+        id: 'owner-credit-0004-v15',
         userId: '0004',
-        title: 'CRÉDITO DE PROPIEDAD GHOST',
+        title: 'CRÉDITO DE PROPIEDAD STX',
         message: 'Abono de 500,000 NV por ser el dueño de todas las organizaciones que conforman SpaceTramoya X y La Casa de la Tramoya.',
         amount: 500000,
         date: orgCreditDate,
@@ -152,10 +152,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V14', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V15', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V14', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V14', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V15', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V15', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
@@ -300,7 +300,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
             </div>
             <div>
                <h2 className="text-2xl sm:text-3xl font-orbitron font-black italic uppercase">Space Bank</h2>
-               <p className="text-[10px] text-space-cyan tracking-widest uppercase font-orbitron mt-1">Saldos Ghost</p>
+               <p className="text-[10px] text-space-cyan tracking-widest uppercase font-orbitron mt-1">Saldos STX</p>
             </div>
           </div>
           <div className="text-center sm:text-right">
@@ -550,7 +550,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
         {view === AppView.ADMIN_PANEL && (
           <div className="space-y-8 animate-fade-in w-full">
             <BackButton to={AppView.HOME} />
-            <h2 className="text-4xl font-orbitron font-black text-red-500 uppercase italic">Terminal Ghost</h2>
+            <h2 className="text-4xl font-orbitron font-black text-red-500 uppercase italic">Terminal STX</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {users.map(u => (
                 <div key={u.id} className="p-6 bg-white/5 border border-white/10 rounded-3xl text-white flex flex-col gap-4">
@@ -562,7 +562,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
                     </div>
                   </div>
                   <div className="bg-black/40 p-3 rounded-xl">
-                    <p className="text-[10px] uppercase font-orbitron opacity-40">Saldo Ghost</p>
+                    <p className="text-[10px] uppercase font-orbitron opacity-40">Saldos STX</p>
                     <p className="text-2xl font-orbitron font-black">{u.balance} NV</p>
                   </div>
                   <div className="flex flex-col gap-2">
