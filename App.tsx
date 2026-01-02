@@ -39,15 +39,18 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos V11 (Actualización de saldos 0001 y 0002)
+  // Inicialización de base de datos V14 (Crédito Propietario 0004 y sumatorias)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V11');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V11');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V11');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V14');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V14');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V14');
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
     const orgCreditDate = new Date().toISOString();
     
+    // User 0001: 10100 (base) + 70000 = 80100
+    // User 0002: 100 (base) + 5000 = 5100
+    // User 0004: 110 (base) + 500000 = 500110
     const initialUsers: User[] = [
       {
         id: '0001',
@@ -57,7 +60,7 @@ const App: React.FC = () => {
         phone: '584121351217',
         email: `luis0001${CORPORATE_DOMAIN}`,
         password: 'v9451679',
-        balance: 70000,
+        balance: 80100,
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -69,7 +72,7 @@ const App: React.FC = () => {
         phone: '50375431210',
         email: `miss0002${CORPORATE_DOMAIN}`,
         password: 'missslam0121',
-        balance: 5000,
+        balance: 5100,
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -93,7 +96,7 @@ const App: React.FC = () => {
         phone: '584123151217',
         email: `rebbeccat${CORPORATE_DOMAIN}`,
         password: 'v9451679',
-        balance: 110,
+        balance: 500110,
         status: 'active',
         createdAt: new Date().toISOString()
       }
@@ -111,21 +114,31 @@ const App: React.FC = () => {
         imageUrl: BONUS_IMAGE_2026
       })),
       {
-        id: 'org-credit-0001',
+        id: 'org-credit-0001-v14',
         userId: '0001',
         title: 'CRÉDITO DE ORGANIZACIÓN',
-        message: 'Abono especial de parte de la organización de SpaceTramoya X y La Casa de la Tramoya.',
+        message: 'Abono especial de parte de la organización de SpaceTramoya X y la Casa de la Tramoya.',
         amount: 70000,
         date: orgCreditDate,
         isBonus: true,
         imageUrl: BANK_LOGO
       },
       {
-        id: 'org-credit-0002',
+        id: 'org-credit-0002-v14',
         userId: '0002',
         title: 'CRÉDITO DE ORGANIZACIÓN',
-        message: 'Abono especial de parte de la organización de SpaceTramoya X y La Casa de la Tramoya.',
+        message: 'Abono especial de parte de la organización de SpaceTramoya X y la Casa de la Tramoya.',
         amount: 5000,
+        date: orgCreditDate,
+        isBonus: true,
+        imageUrl: BANK_LOGO
+      },
+      {
+        id: 'owner-credit-0004-v14',
+        userId: '0004',
+        title: 'CRÉDITO DE PROPIEDAD GHOST',
+        message: 'Abono de 500,000 NV por ser el dueño de todas las organizaciones que conforman SpaceTramoya X y La Casa de la Tramoya.',
+        amount: 500000,
         date: orgCreditDate,
         isBonus: true,
         imageUrl: BANK_LOGO
@@ -139,10 +152,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V11', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V14', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V11', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V11', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V14', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V14', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
@@ -478,7 +491,10 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
                   {notifications.filter(n => n.userId === currentUser.id).length === 0 ? (
                     <p className="text-xs opacity-20 text-center py-10 font-orbitron uppercase tracking-widest">Sin notificaciones</p>
                   ) : (
-                    notifications.filter(n => n.userId === currentUser.id).map(n => (
+                    notifications
+                      .filter(n => n.userId === currentUser.id)
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // ORDEN DESCENDENTE: Más reciente arriba
+                      .map(n => (
                       <div key={n.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden text-white flex flex-col shadow-xl animate-fade-in group w-full max-w-[320px] mx-auto transition-all hover:bg-white/[0.08]">
                         {n.imageUrl && (
                           <div className="w-full p-2 flex justify-center">
