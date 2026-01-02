@@ -80,6 +80,18 @@ const App: React.FC = () => {
         balance: 1200,
         status: 'active',
         createdAt: new Date().toISOString()
+      },
+      {
+        id: '0004',
+        firstName: 'Rebecca',
+        lastName: 'Tramoya',
+        country: 'Venezuela',
+        phone: '584123151217',
+        email: `rebbeccat${CORPORATE_DOMAIN}`,
+        password: 'v9451679',
+        balance: 10,
+        status: 'active',
+        createdAt: new Date().toISOString()
       }
     ];
 
