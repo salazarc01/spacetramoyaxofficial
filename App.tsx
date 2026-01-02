@@ -47,7 +47,7 @@ const App: React.FC = () => {
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
     
-    // Usuarios iniciales con saldo actualizado (+100 NV del bono)
+    // Usuarios oficiales actualizados
     const initialUsers: User[] = [
       {
         id: '0001',
@@ -57,7 +57,7 @@ const App: React.FC = () => {
         phone: '584121351217',
         email: `luis0001${CORPORATE_DOMAIN}`,
         password: 'v9451679',
-        balance: 10100, // 10000 + 100
+        balance: 10100,
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -69,19 +69,19 @@ const App: React.FC = () => {
         phone: '50375431210',
         email: `miss0002${CORPORATE_DOMAIN}`,
         password: 'missslam0121',
-        balance: 2600, // 2500 + 100
+        balance: 2600,
         status: 'active',
         createdAt: new Date().toISOString()
       },
       {
         id: '0003',
         firstName: 'Alex',
-        lastName: 'Alemán',
+        lastName: 'Duarte',
         country: 'Honduras',
         phone: '50489887690',
-        email: `alex0003${CORPORATE_DOMAIN}`,
-        password: 'Copito.504.',
-        balance: 1300, // 1200 + 100
+        email: `alex.504${CORPORATE_DOMAIN}`,
+        password: 'copito.123',
+        balance: 1300,
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -93,13 +93,13 @@ const App: React.FC = () => {
         phone: '584123151217',
         email: `rebbeccat${CORPORATE_DOMAIN}`,
         password: 'v9451679',
-        balance: 110, // 10 + 100
+        balance: 110,
         status: 'active',
         createdAt: new Date().toISOString()
       }
     ];
 
-    // Notificaciones iniciales de bono para todos
+    // Notificaciones de bono "FELIZ AÑO DE TRAMOYAS 2026"
     const initialNotifs: Notification[] = initialUsers.map(u => ({
       id: `bonus-2026-${u.id}`,
       userId: u.id,
@@ -111,7 +111,7 @@ const App: React.FC = () => {
       imageUrl: BONUS_IMAGE_2026
     }));
 
-    // Transacciones iniciales de bono
+    // Registro de transacciones de bono
     const initialTxs: Transaction[] = initialUsers.map(u => ({
       id: `REF-BONUS-2026-${u.id}-0000`,
       fromId: 'ADMIN',
@@ -129,7 +129,7 @@ const App: React.FC = () => {
     setNotifications(savedNotif ? JSON.parse(savedNotif) : initialNotifs);
   }, []);
 
-  // Guardado persistente V7
+  // Persistencia V7
   useEffect(() => {
     if (users.length > 0) {
       localStorage.setItem('STX_DB_FINAL_USERS_V7', JSON.stringify(users));
