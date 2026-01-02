@@ -1,11 +1,26 @@
-<div align="center">
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+# SpaceTramoya X 🚀
 
-  <h1>Built with AI Studio</h2>
+Plataforma exclusiva de gestión comunitaria y banca digital.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Despliegue en GitHub Pages
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+Esta aplicación está configurada para funcionar en:
+`https://salazarc01.github.io/spacetramoyaxoff/`
 
-</div>
+### Pasos para actualizar:
+
+1. Asegúrate de tener Node.js instalado.
+2. Ejecuta:
+   ```bash
+   npm install
+   npm run build
+   ```
+3. Sube el contenido de la carpeta `dist` a la rama `main` de tu repositorio `spacetramoyaxoff`.
+4. En GitHub, ve a **Settings > Pages** y activa el despliegue desde la rama elegida.
+
+### Características Clave:
+- **Estética Futurista:** Diseño en morado y azul con tipografía Orbitron.
+- **SpaceBank:** Sistema de monedero virtual con Nóvares.
+- **Acceso GHOST:** Panel administrativo avanzado con control total de fondos y usuarios.
+- **Nitidez:** Optimizado para zoom y dispositivos móviles de alta resolución.

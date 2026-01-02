@@ -1,0 +1,7 @@
+{
+  "name": "SpaceTramoya X",
+  "description": "Plataforma exclusiva de gestión comunitaria y monedero virtual SpaceBank con estética futurista.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
