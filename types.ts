@@ -29,6 +29,7 @@ export interface Notification {
   amount?: number;
   date: string;
   isBonus?: boolean;
+  imageUrl?: string;
 }
 
 export interface User {

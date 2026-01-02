@@ -28,6 +28,7 @@ const ADMIN_CREDENTIALS = {
 
 const OFFICIAL_EMAIL = "soportespacetramoyax@gmail.com";
 const BANK_LOGO = "https://i.postimg.cc/jjKR8VQP/Photoroom_20251227_172103.png";
+const BONUS_IMAGE_2026 = "https://i.postimg.cc/BvmKfFtJ/20260102-170520-0000.png";
 const CORPORATE_DOMAIN = "@tramoyax.cdlt";
 
 const App: React.FC = () => {
@@ -38,12 +39,15 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos
+  // Inicialización de base de datos V7 (Bono Año Nuevo incluido)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V6');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V6');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V6');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V7');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V7');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V7');
 
+    const bonusDate = "2026-01-02T17:05:00.000Z";
+    
+    // Usuarios iniciales con saldo actualizado (+100 NV del bono)
     const initialUsers: User[] = [
       {
         id: '0001',
@@ -53,7 +57,7 @@ const App: React.FC = () => {
         phone: '584121351217',
         email: `luis0001${CORPORATE_DOMAIN}`,
         password: 'v9451679',
-        balance: 10000,
+        balance: 10100, // 10000 + 100
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -65,7 +69,7 @@ const App: React.FC = () => {
         phone: '50375431210',
         email: `miss0002${CORPORATE_DOMAIN}`,
         password: 'missslam0121',
-        balance: 2500,
+        balance: 2600, // 2500 + 100
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -77,7 +81,7 @@ const App: React.FC = () => {
         phone: '50489887690',
         email: `alex0003${CORPORATE_DOMAIN}`,
         password: 'Copito.504.',
-        balance: 1200,
+        balance: 1300, // 1200 + 100
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -89,40 +93,68 @@ const App: React.FC = () => {
         phone: '584123151217',
         email: `rebbeccat${CORPORATE_DOMAIN}`,
         password: 'v9451679',
-        balance: 10,
+        balance: 110, // 10 + 100
         status: 'active',
         createdAt: new Date().toISOString()
       }
     ];
 
+    // Notificaciones iniciales de bono para todos
+    const initialNotifs: Notification[] = initialUsers.map(u => ({
+      id: `bonus-2026-${u.id}`,
+      userId: u.id,
+      title: 'FELIZ AÑO DE TRAMOYAS 2026',
+      message: 'Regalo especial de inicio de año para la familia STX.',
+      amount: 100,
+      date: bonusDate,
+      isBonus: true,
+      imageUrl: BONUS_IMAGE_2026
+    }));
+
+    // Transacciones iniciales de bono
+    const initialTxs: Transaction[] = initialUsers.map(u => ({
+      id: `REF-BONUS-2026-${u.id}-0000`,
+      fromId: 'ADMIN',
+      fromName: 'SpaceTramoya X Admin',
+      toId: u.id,
+      toName: u.firstName,
+      amount: 100,
+      reason: 'Bono FELIZ AÑO DE TRAMOYAS 2026',
+      date: bonusDate,
+      type: 'bonus'
+    }));
+
     setUsers(savedUsers ? JSON.parse(savedUsers) : initialUsers);
-    setTransactions(savedTx ? JSON.parse(savedTx) : []);
-    setNotifications(savedNotif ? JSON.parse(savedNotif) : []);
+    setTransactions(savedTx ? JSON.parse(savedTx) : initialTxs);
+    setNotifications(savedNotif ? JSON.parse(savedNotif) : initialNotifs);
   }, []);
 
-  // Guardado persistente
+  // Guardado persistente V7
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V6', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V7', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V6', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V6', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V7', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V7', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
-  const addNotification = (userId: string, title: string, message: string, isBonus: boolean = false) => {
+  const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
     const newNotif: Notification = {
       id: Math.random().toString(36).substr(2, 9),
       userId,
       title,
       message,
+      amount,
       date: new Date().toISOString(),
-      isBonus
+      isBonus,
+      imageUrl
     };
     setNotifications(prev => [newNotif, ...prev]);
   };
 
-  const handleAdminSendFunds = (userId: string, amount: number, reason: string) => {
+  const handleAdminSendFunds = (userId: string, amount: number, reason: string, isBonus: boolean = false) => {
     const ref = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join('');
+    const user = users.find(u => u.id === userId);
     
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: u.balance + amount } : u));
 
@@ -131,19 +163,21 @@ const App: React.FC = () => {
       fromId: 'ADMIN',
       fromName: 'SpaceTramoya X Admin',
       toId: userId,
-      toName: users.find(u => u.id === userId)?.firstName || 'Usuario',
+      toName: user?.firstName || 'Usuario',
       amount,
       reason,
       date: new Date().toISOString(),
-      type: 'bonus'
+      type: isBonus ? 'bonus' : 'credit'
     };
     setTransactions(prev => [newTx, ...prev]);
 
     addNotification(
       userId, 
-      amount >= 1000 ? '¡BONO ESPECIAL RECIBIDO!' : 'ABONO GHOST RECIBIDO', 
-      `Se han acreditado ${amount} Nóvares. Motivo: ${reason}. REF: ...${ref.slice(-4)}`,
-      amount >= 1000
+      reason, 
+      `Abono de ${amount} NV procesado.`, 
+      amount,
+      isBonus,
+      isBonus ? BONUS_IMAGE_2026 : undefined
     );
 
     alert(`Fondos acreditados con éxito. REF: ${ref}`);
@@ -208,54 +242,32 @@ const App: React.FC = () => {
       if (numAmount > currentBalance) return alert('Saldo insuficiente.');
 
       const ref = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join('');
-      const mailBody = `
---- SOLICITUD DE TRANSFERENCIA SPACEBANK ---
-FECHA: ${new Date().toLocaleString()}
-REFERENCIA: ${ref}
+      const mailBody = `--- SOLICITUD DE TRANSFERENCIA ---
+REF: ${ref}
+DE: ${currentUser?.firstName} (ID: ${currentUser?.id})
+A: ${receiver.firstName} (ID: ${receiverId})
+MONTO: ${numAmount} NV
+MOTIVO: ${reason || 'Sin motivo'}`;
 
-DATOS DEL REMITENTE:
-ID: ${currentUser?.id}
-NOMBRE: ${currentUser?.firstName} ${currentUser?.lastName}
-SALDO DISPONIBLE ANTES: ${currentBalance} NV
-MONTO A RETIRAR: ${numAmount} NV
-SALDO FINAL DESPUÉS DE TRANSACCIÓN: ${balanceAfter} NV
-
-DATOS DEL RECEPTOR:
-ID: ${receiverId}
-NOMBRE COMPLETO: ${receiver.firstName} ${receiver.lastName}
-
-DETALLES:
-MOTIVO: ${reason || 'No especificado'}
-
-Solicito formalmente que se procese este envío Ghost a través del sistema manual de SpaceTramoya X.
-      `.trim();
-
-      addNotification(
-        currentUser?.id || '', 
-        'TRANSFERENCIA SOLICITADA', 
-        `Envío de ${numAmount} NV solicitado. Receptor: ${receiver.firstName} (ID: ${receiverId}). REF: ...${ref.slice(-4)}`
-      );
-
-      window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=SOLICITUD DE TRANSFERENCIA - REF ${ref}&body=${encodeURIComponent(mailBody)}`;
+      window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=TRANSFERENCIA STX REF ${ref.slice(-4)}&body=${encodeURIComponent(mailBody)}`;
     };
 
     return (
       <div className="space-y-6 sm:space-y-8 animate-fade-in w-full">
         <BackButton to={AppView.DASHBOARD} />
         
-        {/* Banner de Saldo con Logo Blanco Visible */}
-        <div className="p-6 sm:p-10 bg-gradient-to-br from-space-deep to-space-blue/30 rounded-3xl sm:rounded-[40px] border border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-8 shadow-2xl text-white relative overflow-hidden">
+        <div className="p-6 sm:p-10 bg-gradient-to-br from-space-deep to-space-blue/30 rounded-3xl sm:rounded-[40px] border border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-2xl text-white relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#02020a] border border-white/5 rounded-xl sm:rounded-2xl p-2 shrink-0 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)]">
-               <img src={BANK_LOGO} className="w-full h-full object-contain" alt="SpaceTXBank Logo" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#02020a] border border-white/5 rounded-xl p-2 flex items-center justify-center">
+               <img src={BANK_LOGO} className="w-full h-full object-contain" alt="Logo" />
             </div>
             <div>
                <h2 className="text-2xl sm:text-3xl font-orbitron font-black italic uppercase">Space Bank</h2>
-               <p className="text-[10px] text-space-cyan tracking-widest uppercase font-orbitron mt-1">Transacciones Ghost</p>
+               <p className="text-[10px] text-space-cyan tracking-widest uppercase font-orbitron mt-1">Saldos Ghost</p>
             </div>
           </div>
           <div className="text-center sm:text-right">
-            <p className="text-[10px] opacity-40 uppercase font-orbitron tracking-widest">Tu Balance</p>
+            <p className="text-[10px] opacity-40 uppercase font-orbitron tracking-widest">Disponible</p>
             <p className="text-4xl sm:text-5xl font-orbitron font-black">{currentBalance} <span className="text-lg text-space-cyan">NV</span></p>
           </div>
         </div>
@@ -266,77 +278,25 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
         </div>
 
         {tab === 'send' ? (
-          <div className="max-w-md mx-auto bg-white/5 p-6 sm:p-10 rounded-3xl sm:rounded-[40px] border border-white/10 shadow-2xl text-white space-y-4 sm:space-y-6">
+          <div className="max-w-md mx-auto bg-white/5 p-6 sm:p-10 rounded-3xl border border-white/10 shadow-2xl text-white space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">ID Usuario Destino</label>
-              <input 
-                value={receiverId}
-                onChange={(e) => setReceiverId(e.target.value)}
-                className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all font-mono" 
-                placeholder="ID (Ej: 0002)" 
-              />
+              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">ID Receptor</label>
+              <input value={receiverId} onChange={(e) => setReceiverId(e.target.value)} className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="ID (Ej: 0002)" />
               {receiverId && (
-                <div className={`flex items-center gap-2 mt-1 ml-2 transition-all ${receiver ? 'text-green-400' : 'text-red-400'}`}>
-                  {receiver ? <CheckCircle2 size={12} /> : <ShieldAlert size={12} />}
-                  <p className="text-[10px] font-bold uppercase italic">
-                    {receiver ? `RECEPTOR: ${receiver.firstName} ${receiver.lastName}` : "USUARIO NO ENCONTRADO EN LA RED"}
-                  </p>
-                </div>
+                <p className={`text-[10px] font-bold uppercase italic ml-2 ${receiver ? 'text-green-400' : 'text-red-400'}`}>
+                  {receiver ? `DESTINO: ${receiver.firstName} ${receiver.lastName}` : "ID NO RECONOCIDO"}
+                </p>
               )}
             </div>
-
             <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Cantidad a enviar</label>
-              <input 
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none font-orbitron focus:border-space-cyan transition-all" 
-                placeholder="0.00" 
-              />
-              <div className="p-5 bg-space-deep/50 rounded-2xl border border-white/5 space-y-3 mt-4">
-                 <div className="flex justify-between items-center text-[10px] font-orbitron">
-                    <span className="opacity-40 uppercase">Disponible:</span>
-                    <span className="text-white font-black">{currentBalance} NV</span>
-                 </div>
-                 <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[10px] font-orbitron">
-                    <span className="opacity-40 uppercase">Saldo Final:</span>
-                    <span className={`text-lg font-black ${balanceAfter < 0 ? 'text-red-500' : 'text-space-cyan'}`}>
-                       {balanceAfter} NV
-                    </span>
-                 </div>
-              </div>
+              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Monto NV</label>
+              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none font-orbitron focus:border-space-cyan" placeholder="0.00" />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Motivo</label>
-              <input 
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" 
-                placeholder="Ej: Pago pendiente" 
-              />
-            </div>
-
-            <button 
-              disabled={!receiver || numAmount <= 0 || balanceAfter < 0}
-              onClick={handleTransferRequest}
-              className="w-full py-5 sm:py-6 bg-gradient-to-r from-space-purple to-space-blue rounded-xl sm:rounded-2xl font-orbitron font-black text-lg sm:text-xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-20 shadow-lg"
-            >
-              <Send size={20} /> ENVIAR SOLICITUD GMAIL
-            </button>
+            <button disabled={!receiver || numAmount <= 0 || balanceAfter < 0} onClick={handleTransferRequest} className="w-full py-5 bg-gradient-to-r from-space-purple to-space-blue rounded-xl font-orbitron font-black text-lg active:scale-95 disabled:opacity-20 shadow-lg">ENVIAR SOLICITUD GMAIL</button>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
-              <input 
-                className="w-full bg-white/5 border border-white/10 p-4 pl-12 rounded-2xl text-white outline-none focus:border-space-cyan" 
-                placeholder="REF (Últimos 4 dígitos)..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            <input className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white outline-none focus:border-space-cyan" placeholder="Buscar por REF (4 últimos)..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             <div className="space-y-3">
               {userTxs.filter(t => t.id.endsWith(searchQuery)).map(t => (
                 <div key={t.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center text-white">
@@ -346,7 +306,7 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
                      </div>
                      <div>
                       <p className="text-[9px] opacity-30 font-mono tracking-widest uppercase">REF: ...{t.id.slice(-4)}</p>
-                      <p className="font-bold text-sm">{t.toId === currentUser?.id ? `DE: ${t.fromName}` : `A: ${t.toName}`}</p>
+                      <p className="font-bold text-sm">{t.toId === currentUser?.id ? `RECIBIDO DE: ${t.fromName}` : `ENVIADO A: ${t.toName}`}</p>
                      </div>
                   </div>
                   <div className="text-right">
@@ -391,28 +351,26 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
               e.preventDefault();
               const d = new FormData(e.currentTarget);
               if (!isOfficeOpen()) return alert('Sistema cerrado (6:00 AM - 11:30 PM).');
-              if (confirm('¿Aceptas los términos y condiciones? Serás redirigido a Gmail.')) {
+              if (confirm('¿Confirmas tu registro? Serás redirigido a Gmail.')) {
                 const userPrefix = d.get('email_user') as string;
                 const fullEmail = `${userPrefix}${CORPORATE_DOMAIN}`;
-                const body = `REGISTRO STX\n\nNombre: ${d.get('name')}\nApellido: ${d.get('last')}\nPaís: ${d.get('country')}\nWA: ${d.get('phone')}\nEmail: ${fullEmail}\nClave: ${d.get('pass')}`;
+                const body = `REGISTRO STX\nNombre: ${d.get('name')}\nWhatsApp: ${d.get('phone')}\nEmail: ${fullEmail}\nClave: ${d.get('pass')}`;
                 window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=REGISTRO STX&body=${encodeURIComponent(body)}`;
                 setView(AppView.HOME);
-                alert('Solicitud enviada a Gmail. Recibirás tu acceso pronto.');
+                alert('Solicitud enviada.');
               }
             }}>
-              <input name="name" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Nombre" required />
-              <input name="last" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Apellido" required />
-              <input name="country" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="País" required />
-              <input name="phone" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="WhatsApp" required />
-              
+              <input name="name" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan" placeholder="Nombre" required />
+              <input name="last" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan" placeholder="Apellido" required />
+              <input name="country" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan" placeholder="País" required />
+              <input name="phone" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan" placeholder="WhatsApp" required />
               <div className="w-full md:col-span-2 relative">
-                <input name="email_user" className="w-full bg-space-deep border border-white/10 p-4 pr-32 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Usuario para correo" required />
+                <input name="email_user" className="w-full bg-space-deep border border-white/10 p-4 pr-32 rounded-xl text-white outline-none focus:border-space-cyan" placeholder="Usuario para correo" required />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 font-orbitron text-xs text-space-cyan font-bold">{CORPORATE_DOMAIN}</span>
               </div>
-              
-              <input name="pass" type="password" className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Elige tu contraseña" required />
+              <input name="pass" type="password" className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan" placeholder="Contraseña" required />
               <button type="submit" disabled={!isOfficeOpen()} className="w-full md:col-span-2 py-5 bg-gradient-to-r from-space-purple to-space-cyan rounded-xl font-orbitron font-black text-xl text-white flex items-center justify-center gap-3 active:scale-95 transition-all">
-                <Mail size={20} /> ENVIAR REGISTRO
+                <Mail size={20} /> ENVIAR REGISTRO STX
               </button>
             </form>
           </div>
@@ -421,10 +379,10 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
         {view === AppView.LOGIN && (
           <div className="max-w-md mx-auto bg-white/5 p-10 rounded-[40px] border border-white/10 shadow-2xl text-white text-center">
             <BackButton to={AppView.HOME} />
-            <h2 className="text-2xl font-orbitron font-black mb-10 uppercase italic">Acceso Privado</h2>
+            <h2 className="text-2xl font-orbitron font-black mb-10 uppercase italic">Miembro STX</h2>
             <div className="space-y-6">
               <input id="loginId" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center focus:border-space-cyan" placeholder="ID MEMBER" />
-              <input id="loginPw" type="password" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center focus:border-space-cyan" placeholder="PASSWORD" />
+              <input id="loginPw" type="password" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center focus:border-space-cyan" placeholder="CONTRASEÑA" />
               <button onClick={() => {
                 const id = (document.getElementById('loginId') as HTMLInputElement).value;
                 const pw = (document.getElementById('loginPw') as HTMLInputElement).value;
@@ -439,11 +397,11 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
           <div className="space-y-6 animate-fade-in w-full">
             <div className="p-8 bg-gradient-to-br from-space-purple/20 to-space-blue/20 border border-white/10 rounded-3xl flex flex-col sm:flex-row justify-between items-center text-white gap-4">
               <div className="text-center sm:text-left">
-                <h2 className="text-3xl font-orbitron font-black italic">BIENVENIDO, {currentUser.firstName}</h2>
+                <h2 className="text-3xl font-orbitron font-black italic uppercase">HOLA, {currentUser.firstName}</h2>
                 <p className="opacity-60 flex items-center justify-center sm:justify-start gap-2 mt-1 text-sm"><Clock size={14} /> {getLocalTime(currentUser.country)}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-space-cyan font-bold uppercase tracking-widest">Balance SpaceBank</p>
+                <p className="text-xs text-space-cyan font-bold uppercase tracking-widest">Balance Disponible</p>
                 <p className="text-4xl font-orbitron font-black">{currentUser.balance} NV</p>
               </div>
             </div>
@@ -454,7 +412,7 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
                 <h3 className="text-2xl font-bold">{currentUser.firstName} {currentUser.lastName}</h3>
                 <p className="text-space-cyan font-mono font-bold uppercase bg-space-cyan/10 px-4 py-1 rounded-full inline-block text-xs mt-2">ID: {currentUser.id}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 text-sm opacity-80">
-                  <p><strong>WHATSAPP:</strong> {currentUser.phone.slice(0,5)}***{currentUser.phone.slice(-1)}</p>
+                  <p><strong>WA:</strong> {currentUser.phone.slice(0,5)}***{currentUser.phone.slice(-1)}</p>
                   <p><strong>PAÍS:</strong> {currentUser.country}</p>
                   <p className="sm:col-span-2"><strong>EMAIL:</strong> {currentUser.email}</p>
                 </div>
@@ -472,21 +430,24 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
                   <p className="text-space-cyan font-orbitron font-black text-3xl">{currentUser.balance} NV</p>
                 </div>
               </button>
+              
               <div className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white">
                 <div className="flex justify-between items-start">
-                  <p className="font-orbitron font-bold text-xl uppercase">Alertas</p>
+                  <p className="font-orbitron font-bold text-xl uppercase">Notificaciones</p>
                   <Bell size={20} className="text-space-purple" />
                 </div>
-                <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {notifications.filter(n => n.userId === currentUser.id).length === 0 ? (
-                    <p className="text-xs opacity-20 text-center py-10 font-orbitron">Sin notificaciones</p>
+                    <p className="text-xs opacity-20 text-center py-10 font-orbitron">Sin mensajes</p>
                   ) : (
                     notifications.filter(n => n.userId === currentUser.id).map(n => (
-                      <div key={n.id} className={`p-4 rounded-2xl border text-white ${n.isBonus ? 'bg-space-purple/20 border-space-purple/30' : 'bg-white/5 border-white/10'} flex gap-3`}>
-                        <div className="shrink-0">{n.isBonus ? <Gift size={14} /> : <CheckCircle2 size={14} />}</div>
-                        <div>
-                          <p className="font-bold text-[10px] uppercase text-space-cyan">{n.title}</p>
-                          <p className="text-[11px] opacity-80 mt-1">{n.message}</p>
+                      <div key={n.id} className="bg-white/5 border border-white/40 rounded-3xl overflow-hidden text-white flex flex-col p-0 shadow-lg shadow-white/5 animate-fade-in">
+                        {n.imageUrl && <img src={n.imageUrl} className="w-full h-auto object-cover border-b border-white/10" alt="Bono" />}
+                        <div className="p-5 space-y-1">
+                          <p className="text-[10px] text-space-cyan font-orbitron font-bold uppercase tracking-widest">Bono</p>
+                          <p className="font-orbitron font-black text-sm leading-tight uppercase italic">{n.title}</p>
+                          <p className="text-2xl font-orbitron font-black text-space-cyan mt-2">+{n.amount} NV</p>
+                          <p className="text-[8px] opacity-40 uppercase font-bold pt-2">{new Date(n.date).toLocaleString('es-ES')}</p>
                         </div>
                       </div>
                     ))
@@ -502,7 +463,7 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
         {view === AppView.ADMIN_LOGIN && (
           <div className="max-w-md mx-auto bg-white/5 border border-red-500/20 p-12 rounded-[50px] shadow-2xl text-white">
             <BackButton to={AppView.HOME} />
-            <h2 className="text-3xl font-orbitron font-black text-center mb-10 text-red-500 uppercase italic">Ghost Terminal</h2>
+            <h2 className="text-3xl font-orbitron font-black text-center mb-10 text-red-500 uppercase italic">Admin Access</h2>
             <div className="space-y-6 text-center">
               <input id="admU" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center focus:border-red-500" placeholder="USER" />
               <input id="admP" type="password" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center focus:border-red-500" placeholder="PASS" />
@@ -511,7 +472,7 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
                 const u = (document.getElementById('admU') as HTMLInputElement).value;
                 const p = (document.getElementById('admP') as HTMLInputElement).value;
                 const c = (document.getElementById('admC') as HTMLInputElement).value;
-                if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass && c === ADMIN_CREDENTIALS.securityCode) setView(AppView.ADMIN_PANEL); else alert('ERROR DE SISTEMA');
+                if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass && c === ADMIN_CREDENTIALS.securityCode) setView(AppView.ADMIN_PANEL); else alert('BLOQUEO DE SEGURIDAD');
               }} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white active:scale-95 transition-all">AUTORIZAR</button>
             </div>
           </div>
@@ -520,7 +481,7 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
         {view === AppView.ADMIN_PANEL && (
           <div className="space-y-8 animate-fade-in w-full">
             <BackButton to={AppView.HOME} />
-            <h2 className="text-4xl font-orbitron font-black text-red-500 uppercase italic">Ghost Admin</h2>
+            <h2 className="text-4xl font-orbitron font-black text-red-500 uppercase italic">Terminal Ghost</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {users.map(u => (
                 <div key={u.id} className="p-6 bg-white/5 border border-white/10 rounded-3xl text-white flex flex-col gap-4">
@@ -537,7 +498,11 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
                       const val = prompt(`Abonar a ${u.firstName}:`);
                       if(val && !isNaN(Number(val))) handleAdminSendFunds(u.id, Number(val), 'Crédito Ghost');
                     }} className="w-full py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-green-500 hover:text-white transition-all">ABONAR NV</button>
-                    <button onClick={() => {if(confirm(`¿Eliminar?`)) setUsers(users.filter(x => x.id !== u.id))}} className="w-full py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-all">ELIMINAR</button>
+                    <button onClick={() => {
+                      const val = prompt(`Bono Especial a ${u.firstName}:`);
+                      if(val && !isNaN(Number(val))) handleAdminSendFunds(u.id, Number(val), 'Bono FELIZ AÑO DE TRAMOYAS 2026', true);
+                    }} className="w-full py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-purple-500 hover:text-white transition-all">DAR BONO CARTA</button>
+                    <button onClick={() => {if(confirm(`¿ELIMINAR?`)) setUsers(users.filter(x => x.id !== u.id))}} className="w-full py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-all">ELIMINAR</button>
                   </div>
                 </div>
               ))}
@@ -552,7 +517,7 @@ Solicito formalmente que se procese este envío Ghost a través del sistema manu
       </div>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.3); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.4); border-radius: 10px; }
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
