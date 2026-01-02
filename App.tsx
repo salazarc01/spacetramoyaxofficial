@@ -28,6 +28,7 @@ const ADMIN_CREDENTIALS = {
 
 const OFFICIAL_EMAIL = "soportespacetramoyax@gmail.com";
 const BANK_LOGO = "https://i.postimg.cc/jjKR8VQP/Photoroom_20251227_172103.png";
+const CORPORATE_DOMAIN = "@tramoyax.cdlt";
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
@@ -50,7 +51,7 @@ const App: React.FC = () => {
         lastName: 'Alejandro',
         country: 'Venezuela',
         phone: '584121351217',
-        email: 'mgsvof@gmail.com',
+        email: `luis0001${CORPORATE_DOMAIN}`,
         password: 'v9451679',
         balance: 10000,
         status: 'active',
@@ -62,7 +63,7 @@ const App: React.FC = () => {
         lastName: 'Slam',
         country: 'El Salvador',
         phone: '50375431210',
-        email: 'missslam@tramoyax.com',
+        email: `miss0002${CORPORATE_DOMAIN}`,
         password: 'missslam0121',
         balance: 2500,
         status: 'active',
@@ -74,7 +75,7 @@ const App: React.FC = () => {
         lastName: 'Alemán',
         country: 'Honduras',
         phone: '50489887690',
-        email: 'alex0003@tramoyax.com',
+        email: `alex0003${CORPORATE_DOMAIN}`,
         password: 'Copito.504.',
         balance: 1200,
         status: 'active',
@@ -186,13 +187,14 @@ const App: React.FC = () => {
     // Búsqueda dinámica del receptor para validación
     const receiver = users.find(u => u.id === receiverId);
     const numAmount = Number(amount);
-    const balanceAfter = currentUser ? currentUser.balance - numAmount : 0;
+    const currentBalance = currentUser?.balance || 0;
+    const balanceAfter = currentBalance - numAmount;
     const userTxs = transactions.filter(t => t.fromId === currentUser?.id || t.toId === currentUser?.id);
 
     const handleTransferRequest = () => {
       if (!receiver) return alert('ID de receptor no válido.');
       if (numAmount <= 0) return alert('Ingresa un monto válido.');
-      if (numAmount > (currentUser?.balance || 0)) return alert('Saldo insuficiente.');
+      if (numAmount > currentBalance) return alert('Saldo insuficiente.');
 
       const ref = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join('');
       const mailBody = `
@@ -203,27 +205,27 @@ REFERENCIA: ${ref}
 DATOS DEL REMITENTE:
 ID: ${currentUser?.id}
 NOMBRE: ${currentUser?.firstName} ${currentUser?.lastName}
-SALDO ACTUAL: ${currentUser?.balance} NV
-SALDO DESPUÉS DE TRANSACCIÓN: ${balanceAfter} NV
+SALDO DISPONIBLE ANTES: ${currentBalance} NV
+MONTO A RETIRAR: ${numAmount} NV
+SALDO FINAL DESPUÉS DE TRANSACCIÓN: ${balanceAfter} NV
 
 DATOS DEL RECEPTOR:
 ID: ${receiverId}
 NOMBRE COMPLETO: ${receiver.firstName} ${receiver.lastName}
 
 DETALLES:
-MONTO A TRANSFERIR: ${numAmount} NV
 MOTIVO: ${reason || 'No especificado'}
 
-Solicito la aprobación manual de este movimiento.
+Solicito formalmente que se procese este envío Ghost a través del sistema manual de SpaceTramoya X.
       `.trim();
 
       addNotification(
         currentUser?.id || '', 
         'TRANSFERENCIA SOLICITADA', 
-        `Envío de ${numAmount} NV a ${receiver.firstName} ${receiver.lastName} (ID: ${receiverId}) en proceso. REF: ...${ref.slice(-4)}`
+        `Envío de ${numAmount} NV solicitado. Receptor: ${receiver.firstName} (ID: ${receiverId}). REF: ...${ref.slice(-4)}`
       );
 
-      window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=TRANSFERENCIA NV - REF ${ref}&body=${encodeURIComponent(mailBody)}`;
+      window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=SOLICITUD DE TRANSFERENCIA - REF ${ref}&body=${encodeURIComponent(mailBody)}`;
     };
 
     return (
@@ -233,16 +235,21 @@ Solicito la aprobación manual de este movimiento.
         {/* Banner de Saldo */}
         <div className="p-6 sm:p-10 bg-gradient-to-br from-space-deep to-space-blue/30 rounded-3xl sm:rounded-[40px] border border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-8 shadow-2xl text-white relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
-            <img src={BANK_LOGO} className="w-16 h-16 sm:w-20 sm:h-20 object-contain bg-white rounded-xl sm:rounded-2xl p-2 shrink-0" alt="Bank" />
-            <h2 className="text-2xl sm:text-3xl font-orbitron font-black italic uppercase">Space Bank</h2>
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-space-deep border border-white/5 rounded-xl sm:rounded-2xl p-2 shrink-0 flex items-center justify-center shadow-inner">
+               <img src={BANK_LOGO} className="w-full h-full object-contain" alt="SpaceTXBank Logo" />
+            </div>
+            <div>
+               <h2 className="text-2xl sm:text-3xl font-orbitron font-black italic uppercase">Space Bank</h2>
+               <p className="text-[10px] text-space-cyan tracking-widest uppercase font-orbitron mt-1">Transacciones Ghost</p>
+            </div>
           </div>
           <div className="text-center sm:text-right">
-            <p className="text-[10px] opacity-40 uppercase font-orbitron tracking-widest">Saldo Actual</p>
-            <p className="text-4xl sm:text-5xl font-orbitron font-black">{currentUser?.balance} <span className="text-lg text-space-cyan">NV</span></p>
+            <p className="text-[10px] opacity-40 uppercase font-orbitron tracking-widest">Tu Balance</p>
+            <p className="text-4xl sm:text-5xl font-orbitron font-black">{currentBalance} <span className="text-lg text-space-cyan">NV</span></p>
           </div>
         </div>
 
-        {/* Tabs de navegación */}
+        {/* Tabs */}
         <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
           <button onClick={() => setTab('send')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'send' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>ENVIAR</button>
           <button onClick={() => setTab('history')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'history' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>HISTORIAL</button>
@@ -251,26 +258,30 @@ Solicito la aprobación manual de este movimiento.
         {tab === 'send' ? (
           <div className="max-w-md mx-auto bg-white/5 p-6 sm:p-10 rounded-3xl sm:rounded-[40px] border border-white/10 shadow-2xl text-white space-y-4 sm:space-y-6">
             
-            {/* Campo Receptor con Validación */}
+            {/* Validación de Receptor */}
             <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">ID del Usuario Receptor</label>
-              <input 
-                value={receiverId}
-                onChange={(e) => setReceiverId(e.target.value)}
-                className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all font-mono" 
-                placeholder="Ej: 0002" 
-              />
-              {receiver && (
-                <div className="flex items-center gap-2 mt-1 ml-2 text-green-400">
-                  <CheckCircle2 size={12} />
-                  <p className="text-[10px] font-bold uppercase italic">Destino: {receiver.firstName} {receiver.lastName}</p>
+              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">ID Usuario Destino</label>
+              <div className="relative">
+                <input 
+                  value={receiverId}
+                  onChange={(e) => setReceiverId(e.target.value)}
+                  className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all font-mono" 
+                  placeholder="ID (Ej: 0002)" 
+                />
+              </div>
+              {receiverId && (
+                <div className={`flex items-center gap-2 mt-1 ml-2 transition-all ${receiver ? 'text-green-400' : 'text-red-400'}`}>
+                  {receiver ? <CheckCircle2 size={12} /> : <ShieldAlert size={12} />}
+                  <p className="text-[10px] font-bold uppercase italic">
+                    {receiver ? `RECEPTOR: ${receiver.firstName} ${receiver.lastName}` : "USUARIO NO ENCONTRADO EN LA RED"}
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Campo Monto con Resumen de Saldo */}
+            {/* Monto y Saldo Dinámico */}
             <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Monto Nóvares</label>
+              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Cantidad a enviar</label>
               <input 
                 type="number"
                 value={amount}
@@ -278,55 +289,56 @@ Solicito la aprobación manual de este movimiento.
                 className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none font-orbitron focus:border-space-cyan transition-all" 
                 placeholder="0.00" 
               />
-              {numAmount > 0 && (
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2 mt-2">
-                  <div className="flex justify-between text-[10px] opacity-60 uppercase font-orbitron">
-                    <span>Disponible:</span>
-                    <span className="text-white font-bold">{currentUser?.balance} NV</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-red-400 uppercase font-orbitron">
-                    <span>A transferir:</span>
-                    <span className="font-bold">-{numAmount} NV</span>
-                  </div>
-                  <div className="border-t border-white/10 pt-2 flex justify-between text-[10px] uppercase font-orbitron">
-                    <span>Quedará después:</span>
-                    <span className={`font-black ${balanceAfter < 0 ? 'text-red-500' : 'text-space-cyan'}`}>{balanceAfter} NV</span>
-                  </div>
-                </div>
-              )}
+              
+              {/* Desglose de Saldos */}
+              <div className="p-5 bg-space-deep/50 rounded-2xl border border-white/5 space-y-3 mt-4">
+                 <div className="flex justify-between items-center text-[10px] font-orbitron">
+                    <span className="opacity-40 uppercase">Saldo Disponible:</span>
+                    <span className="text-white font-black">{currentBalance} NV</span>
+                 </div>
+                 <div className="flex justify-between items-center text-[10px] font-orbitron">
+                    <span className="text-red-400/60 uppercase">Monto a retirar:</span>
+                    <span className="text-red-400 font-black">-{numAmount || 0} NV</span>
+                 </div>
+                 <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[10px] font-orbitron">
+                    <span className="opacity-40 uppercase">Saldo Final:</span>
+                    <span className={`text-lg font-black ${balanceAfter < 0 ? 'text-red-500' : 'text-space-cyan'}`}>
+                       {balanceAfter} NV
+                    </span>
+                 </div>
+              </div>
             </div>
 
-            {/* Campo Motivo */}
             <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Motivo / Concepto</label>
+              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Motivo</label>
               <input 
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" 
-                placeholder="Ej: Pago de servicio" 
+                placeholder="Ej: Pago pendiente" 
               />
             </div>
 
-            {/* Botón de envío */}
             <button 
               disabled={!receiver || numAmount <= 0 || balanceAfter < 0}
               onClick={handleTransferRequest}
-              className="w-full py-5 sm:py-6 bg-gradient-to-r from-space-purple to-space-blue rounded-xl sm:rounded-2xl font-orbitron font-black text-lg sm:text-xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-20 disabled:grayscale"
+              className="w-full py-5 sm:py-6 bg-gradient-to-r from-space-purple to-space-blue rounded-xl sm:rounded-2xl font-orbitron font-black text-lg sm:text-xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-20 disabled:grayscale shadow-lg shadow-space-purple/20"
             >
-              <Send size={20} /> SOLICITAR ENVÍO
+              <Send size={20} /> ENVIAR SOLICITUD GMAIL
             </button>
             
-            <p className="text-[8px] text-center text-white/20 uppercase tracking-widest font-orbitron">
-              Serás redirigido a Gmail para la aprobación administrativa
+            <p className="text-[8px] text-center text-white/20 uppercase tracking-[0.2em] font-orbitron italic">
+              * El administrador debe aprobar manualmente cada movimiento *
             </p>
           </div>
         ) : (
+          /* Historial */
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
               <input 
                 className="w-full bg-white/5 border border-white/10 p-4 pl-12 rounded-2xl text-white outline-none focus:border-space-cyan" 
-                placeholder="Filtrar por últimos 4 dígitos de REF..." 
+                placeholder="Buscar por últimos 4 dígitos de REF..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -335,19 +347,19 @@ Solicito la aprobación manual de este movimiento.
               {userTxs.filter(t => t.id.endsWith(searchQuery)).length === 0 ? (
                 <div className="py-20 text-center opacity-20 flex flex-col items-center">
                   <Search size={48} />
-                  <p className="text-xs uppercase font-orbitron mt-4 tracking-widest">Sin movimientos registrados</p>
+                  <p className="text-xs uppercase font-orbitron mt-4 tracking-widest">Sin actividad reciente</p>
                 </div>
               ) : (
                 userTxs.filter(t => t.id.endsWith(searchQuery)).map(t => (
-                  <div key={t.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center text-white">
+                  <div key={t.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center text-white group hover:bg-white/[0.08] transition-all">
                     <div className="flex gap-4 items-center">
                        <div className={`p-3 rounded-full ${t.toId === currentUser?.id ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
                           {t.toId === currentUser?.id ? <ArrowDownCircle className="text-green-400" /> : <ArrowUpCircle className="text-red-400" />}
                        </div>
                        <div>
-                        <p className="text-[9px] opacity-30 font-mono tracking-widest">...{t.id.slice(-4)}</p>
+                        <p className="text-[9px] opacity-30 font-mono tracking-widest uppercase">REF: ...{t.id.slice(-4)}</p>
                         <p className="font-bold text-sm">{t.toId === currentUser?.id ? `DE: ${t.fromName}` : `A: ${t.toName}`}</p>
-                        <p className="text-[10px] opacity-60 italic">{t.reason}</p>
+                        <p className="text-[10px] opacity-60 italic max-w-[150px] truncate">{t.reason}</p>
                        </div>
                     </div>
                     <div className="text-right">
@@ -389,14 +401,16 @@ Solicito la aprobación manual de este movimiento.
         {view === AppView.REGISTER && (
           <div className="max-w-2xl mx-auto bg-white/5 p-6 sm:p-10 rounded-3xl sm:rounded-[40px] border border-white/10 shadow-2xl relative overflow-hidden">
             <BackButton to={AppView.HOME} />
-            <h2 className="text-2xl sm:text-3xl font-orbitron font-black text-center mb-6 sm:mb-8 uppercase text-white">Registro Ghost</h2>
+            <h2 className="text-2xl sm:text-3xl font-orbitron font-black text-center mb-6 sm:mb-8 uppercase text-white">Registro STX</h2>
             <form className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" onSubmit={(e) => {
               e.preventDefault();
               const d = new FormData(e.currentTarget);
               if (!isOfficeOpen()) return alert('Sistema cerrado (6:00 AM - 11:30 PM).');
               if (confirm('¿Confirmas los términos y condiciones de SpaceTramoya X? Serás redirigido a Gmail.')) {
-                const body = `SOLICITUD DE REGISTRO\n\nNombre: ${d.get('name')}\nApellido: ${d.get('last')}\nPaís: ${d.get('country')}\nWhatsApp: ${d.get('phone')}\nEmail: ${d.get('email')}\nClave: ${d.get('pass')}`;
-                window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=REGISTRO GHOST&body=${encodeURIComponent(body)}`;
+                const userPrefix = d.get('email_user') as string;
+                const fullEmail = `${userPrefix}${CORPORATE_DOMAIN}`;
+                const body = `REGISTRO STX\n\nNombre: ${d.get('name')}\nApellido: ${d.get('last')}\nPaís: ${d.get('country')}\nWhatsApp: ${d.get('phone')}\nEmail Corporativo: ${fullEmail}\nClave Elegida: ${d.get('pass')}`;
+                window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=REGISTRO STX&body=${encodeURIComponent(body)}`;
                 setView(AppView.HOME);
                 alert('Solicitud enviada. Recibirás tu activación en las próximas horas.');
               }
@@ -405,7 +419,12 @@ Solicito la aprobación manual de este movimiento.
               <input name="last" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl sm:rounded-2xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Apellido" required />
               <input name="country" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl sm:rounded-2xl text-white outline-none focus:border-space-cyan transition-all" placeholder="País" required />
               <input name="phone" className="w-full bg-space-deep border border-white/10 p-4 rounded-xl sm:rounded-2xl text-white outline-none focus:border-space-cyan transition-all" placeholder="WhatsApp" required />
-              <input name="email" type="email" className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-xl sm:rounded-2xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Correo" required />
+              
+              <div className="w-full md:col-span-2 relative">
+                <input name="email_user" className="w-full bg-space-deep border border-white/10 p-4 pr-32 rounded-xl sm:rounded-2xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Usuario para email" required />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-orbitron text-xs text-space-cyan font-bold pointer-events-none">{CORPORATE_DOMAIN}</span>
+              </div>
+              
               <input name="pass" type="password" className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-xl sm:rounded-2xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Contraseña" required />
               <button type="submit" disabled={!isOfficeOpen()} className="w-full md:col-span-2 py-4 sm:py-5 bg-gradient-to-r from-space-purple to-space-cyan rounded-xl sm:rounded-2xl font-orbitron font-black text-lg sm:text-xl text-white flex items-center justify-center gap-3 active:scale-95 transition-all">
                 <Mail size={20} /> ENVIAR A GMAIL
@@ -523,6 +542,7 @@ Solicito la aprobación manual de este movimiento.
                   <div className="min-w-0">
                     <p className="font-bold text-lg sm:text-xl truncate">{u.firstName} {u.lastName}</p>
                     <p className="text-[10px] text-space-cyan font-mono font-bold tracking-widest uppercase">ID: {u.id}</p>
+                    <p className="text-[10px] opacity-40 mt-1">{u.email}</p>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl border border-white/5">
                     <p className="text-[8px] uppercase font-orbitron opacity-40">Saldo Ghost</p>
