@@ -37,11 +37,11 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Carga inicial de datos con clave de versión para evitar conflictos
+  // Inicialización de base de datos
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_V15_USERS');
-    const savedTx = localStorage.getItem('STX_DB_V15_TX');
-    const savedNotif = localStorage.getItem('STX_DB_V15_NOTIF');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF');
 
     const initialUsers: User[] = [
       {
@@ -82,37 +82,19 @@ const App: React.FC = () => {
       }
     ];
 
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      setUsers(initialUsers);
-    }
-    
-    if (savedTx) setTransactions(JSON.parse(savedTx));
-    if (savedNotif) setNotifications(JSON.parse(savedNotif));
+    setUsers(savedUsers ? JSON.parse(savedUsers) : initialUsers);
+    setTransactions(savedTx ? JSON.parse(savedTx) : []);
+    setNotifications(savedNotif ? JSON.parse(savedNotif) : []);
   }, []);
 
-  // Persistencia de datos
+  // Guardado persistente
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_V15_USERS', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_V15_TX', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_V15_NOTIF', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
-
-  // Utilidades
-  const formatPhone = (phone: string) => {
-    if (phone.length < 6) return phone;
-    const start = phone.slice(0, 5);
-    const end = phone.slice(-1);
-    const mid = '*'.repeat(phone.length - 6);
-    return `${start}${mid}${end}`;
-  };
-
-  const generateReference = () => {
-    return Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join('');
-  };
 
   const addNotification = (userId: string, title: string, message: string, isBonus: boolean = false) => {
     const newNotif: Notification = {
@@ -127,14 +109,9 @@ const App: React.FC = () => {
   };
 
   const handleAdminSendFunds = (userId: string, amount: number, reason: string) => {
-    const ref = generateReference();
+    const ref = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join('');
     
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        return { ...u, balance: u.balance + amount };
-      }
-      return u;
-    }));
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: u.balance + amount } : u));
 
     const newTx: Transaction = {
       id: ref,
@@ -149,11 +126,10 @@ const App: React.FC = () => {
     };
     setTransactions(prev => [newTx, ...prev]);
 
-    // Notificación de bono o crédito
     addNotification(
       userId, 
-      amount >= 1000 ? '¡BONO ESPECIAL RECIBIDO!' : 'ABONO GHOST EXITOSO', 
-      `Se han acreditado ${amount} Nóvares a tu cuenta. Motivo: ${reason}. REF: ${ref}`,
+      amount >= 1000 ? '¡BONO ESPECIAL RECIBIDO!' : 'ABONO GHOST RECIBIDO', 
+      `Se han acreditado ${amount} Nóvares. Motivo: ${reason}. REF: ...${ref.slice(-4)}`,
       amount >= 1000
     );
 
@@ -161,48 +137,39 @@ const App: React.FC = () => {
   };
 
   const getLocalTime = (country: string) => {
-    const now = new Date();
-    return now.toLocaleString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      day: '2-digit', 
-      month: 'long', 
-      year: 'numeric' 
+    return new Date().toLocaleString('es-ES', { 
+      hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'long', year: 'numeric' 
     });
   };
 
   const isOfficeOpen = () => {
     const now = new Date();
-    const hour = now.getHours();
-    const min = now.getMinutes();
-    const totalMin = hour * 60 + min;
+    const totalMin = now.getHours() * 60 + now.getMinutes();
     return totalMin >= 360 && totalMin <= 1410; // 6:00 AM - 11:30 PM
   };
+
+  const BackButton = ({ to }: { to: AppView }) => (
+    <button onClick={() => setView(to)} className="mb-6 flex items-center gap-2 text-space-cyan hover:text-white transition-all font-orbitron text-sm">
+      <ArrowLeft size={18} /> VOLVER
+    </button>
+  );
 
   const Header = () => (
     <header className="fixed top-0 left-0 w-full z-50 p-4 bg-space-deep/80 backdrop-blur-md border-b border-white/10 flex justify-between items-center">
       <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView(AppView.HOME)}>
-        <div className="w-10 h-10 bg-gradient-to-tr from-space-purple to-space-cyan rounded-full flex items-center justify-center shadow-lg shadow-space-purple/20">
+        <div className="w-10 h-10 bg-gradient-to-tr from-space-purple to-space-cyan rounded-full flex items-center justify-center">
           <span className="font-orbitron font-black text-xl italic text-white">X</span>
         </div>
-        <h1 className="font-orbitron font-bold text-lg tracking-tighter hidden sm:block text-white uppercase">SpaceTramoya X</h1>
+        <h1 className="font-orbitron font-bold text-lg text-white uppercase tracking-tighter sm:block hidden">SpaceTramoya X</h1>
       </div>
-      
       <div className="flex gap-2">
         {view === AppView.HOME && (
-          <button 
-            onClick={() => setView(AppView.ADMIN_LOGIN)}
-            className="px-4 py-2 text-xs font-orbitron bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all flex items-center gap-2 text-white"
-          >
-            <ShieldCheck size={14} className="text-space-cyan" />
-            ACCESO VIP
+          <button onClick={() => setView(AppView.ADMIN_LOGIN)} className="px-4 py-2 text-xs font-orbitron bg-white/5 border border-white/10 rounded-full text-white flex items-center gap-2">
+            <ShieldCheck size={14} className="text-space-cyan" /> ACCESO VIP
           </button>
         )}
         {currentUser && (
-          <button 
-            onClick={() => { setCurrentUser(null); setView(AppView.HOME); }}
-            className="p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/30 transition-all"
-          >
+          <button onClick={() => { setCurrentUser(null); setView(AppView.HOME); }} className="p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/30 transition-all">
             <LogOut size={18} />
           </button>
         )}
@@ -210,407 +177,222 @@ const App: React.FC = () => {
     </header>
   );
 
-  const BackButton = ({ to }: { to: AppView }) => (
-    <button 
-      onClick={() => setView(to)}
-      className="mb-6 flex items-center gap-2 text-space-cyan hover:text-white transition-colors font-orbitron text-sm group"
-    >
-      <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-      VOLVER
-    </button>
-  );
-
-  const HomeView = () => (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-      <div className="max-w-3xl space-y-8">
-        <div className="relative inline-block">
-          <div className="absolute inset-0 blur-3xl bg-space-purple/30 rounded-full"></div>
-          <h1 className="relative font-orbitron text-5xl md:text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 leading-none uppercase">
-            SPACE<span className="text-space-cyan">TRAMOYA</span> X
-          </h1>
-        </div>
-        <p className="text-xl md:text-2xl font-light text-slate-300 max-w-xl mx-auto leading-relaxed">
-          Únete a la familia más exclusiva del entretenimiento y la tramoya digital.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-          <button 
-            onClick={() => setView(AppView.REGISTER)}
-            className="px-10 py-4 bg-gradient-to-r from-space-purple to-space-blue rounded-full font-orbitron font-bold text-lg shadow-xl shadow-space-purple/40 hover:scale-105 transition-all text-white"
-          >
-            INSCRIBIRME
-          </button>
-          <button 
-            onClick={() => setView(AppView.LOGIN)}
-            className="px-10 py-4 bg-white/5 border border-white/20 backdrop-blur-md rounded-full font-orbitron font-bold text-lg hover:bg-white/10 transition-all text-white"
-          >
-            ENTRAR
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const RegisterView = () => {
-    const [formData, setFormData] = useState({
-      firstName: '', lastName: '', country: '', phone: '', email: '', password: ''
-    });
-
-    const handleFormSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!isOfficeOpen()) return alert('Fuera de horario. Intenta entre las 6:00 AM y 11:30 PM.');
-
-      const terms = "Al continuar, aceptas los términos y condiciones de SpaceTramoya X. Serás redirigido a tu correo para completar el proceso de inscripción.";
-      
-      if (confirm(terms)) {
-        const subject = encodeURIComponent("SOLICITUD DE INSCRIPCIÓN - SPACETRAMOYA X");
-        const body = encodeURIComponent(`
---- SOLICITUD DE REGISTRO OFICIAL ---
-DESTINO: ${OFFICIAL_EMAIL}
-FECHA: ${new Date().toLocaleString()}
-
-DATOS DEL ASPIRANTE:
-NOMBRE: ${formData.firstName}
-APELLIDO: ${formData.lastName}
-PAÍS: ${formData.country}
-WHATSAPP: ${formData.phone}
-CORREO: ${formData.email}
-PASSWORD ELEGIDO: ${formData.password}
-
-Acepto los términos y condiciones de SpaceTramoya X y solicito mi activación.
-        `);
-
-        alert(`¡Inscripción preparada! Ahora abrirás Gmail para enviar tus datos a ${OFFICIAL_EMAIL}. Tu acceso se habilitará tras la revisión Ghost.`);
-        window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=${subject}&body=${body}`;
-        setView(AppView.HOME);
-      }
-    };
-
-    return (
-      <div className="min-h-screen pt-24 px-6 pb-12 flex flex-col items-center">
-        <BackButton to={AppView.HOME} />
-        <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[40px] shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-space-purple via-space-cyan to-space-blue"></div>
-          <div className="mb-8 text-center">
-            <h2 className="text-4xl font-orbitron font-black text-center mb-2 tracking-tighter italic text-white uppercase">Registro Ghost</h2>
-            <p className="text-white/40 text-sm">Completa tus datos para unirte a la familia X</p>
-          </div>
-          <form onSubmit={handleFormSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="Nombre" required value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="Apellido" required value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="País" required value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} />
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="WhatsApp (Ej: 58412...)" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-              <input className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" type="email" placeholder="Correo Electrónico" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              <input className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" type="password" placeholder="Contraseña Personal" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+  return (
+    <div className="min-h-screen bg-space-deep font-inter text-slate-100 overflow-x-hidden">
+      <Header />
+      <main className="pt-24 px-4 pb-12 max-w-4xl mx-auto relative z-10">
+        {view === AppView.HOME && (
+          <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-fade-in">
+            <div className="relative">
+              <div className="absolute inset-0 blur-3xl bg-space-purple/30 rounded-full"></div>
+              <h1 className="relative font-orbitron text-5xl md:text-7xl font-black italic tracking-tighter text-white uppercase">
+                SPACE<span className="text-space-cyan">TRAMOYA</span> X
+              </h1>
             </div>
-            <button type="submit" disabled={!isOfficeOpen()} className="w-full py-5 bg-gradient-to-r from-space-purple to-space-cyan rounded-2xl font-orbitron font-black text-xl shadow-2xl text-white flex items-center justify-center gap-3">
-              <Mail size={24} /> ENVIAR INSCRIPCIÓN GMAIL
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  const DashboardView = () => (
-    <div className="pt-24 px-4 pb-12 max-w-4xl mx-auto space-y-8">
-      <div className="p-8 bg-gradient-to-br from-space-purple/20 to-space-blue/20 border border-white/10 rounded-3xl flex justify-between items-center relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-3xl font-orbitron font-black italic uppercase text-white">Hola, {currentUser?.firstName}</h2>
-          <p className="text-white/60 flex items-center gap-2 mt-2"><Clock size={16} /> {getLocalTime(currentUser?.country || '')}</p>
-        </div>
-        <div className="text-right relative z-10">
-          <p className="text-[10px] text-space-cyan uppercase font-orbitron tracking-widest mb-1">Tu Saldo</p>
-          <p className="text-3xl font-orbitron font-black text-white">{currentUser?.balance} <span className="text-sm">NV</span></p>
-        </div>
-      </div>
-
-      <div className="bg-space-deep border-2 border-space-cyan/30 rounded-3xl overflow-hidden shadow-2xl">
-        <div className="p-4 bg-gradient-to-r from-space-cyan/20 to-transparent border-b border-white/10">
-          <span className="font-orbitron font-black text-space-cyan italic tracking-wider">CREDENCIAL OFICIAL MEMBER</span>
-        </div>
-        <div className="p-8 flex flex-col md:flex-row gap-8 items-center">
-          <div className="w-32 h-32 bg-gradient-to-tr from-white/10 to-white/5 rounded-2xl border border-white/20 flex items-center justify-center">
-            <UserIcon size={64} className="text-white/20" />
-          </div>
-          <div className="flex-1 space-y-2 text-center md:text-left text-white">
-            <h3 className="text-2xl font-bold">{currentUser?.firstName} {currentUser?.lastName}</h3>
-            <p className="text-space-cyan font-mono font-bold tracking-widest uppercase bg-space-cyan/10 px-3 py-1 rounded-full inline-block text-xs">ID: {currentUser?.id}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 text-sm">
-              <p><strong>WhatsApp:</strong> {formatPhone(currentUser?.phone || '')}</p>
-              <p><strong>País:</strong> {currentUser?.country}</p>
-              <p className="sm:col-span-2"><strong>Email:</strong> {currentUser?.email}</p>
+            <p className="text-xl text-slate-300 max-w-xl">La comunidad más exclusiva del entretenimiento digital.</p>
+            <div className="flex gap-4">
+              <button onClick={() => setView(AppView.REGISTER)} className="px-10 py-4 bg-gradient-to-r from-space-purple to-space-blue rounded-full font-orbitron font-bold text-lg shadow-xl hover:scale-105 transition-all text-white">INSCRIBIRME</button>
+              <button onClick={() => setView(AppView.LOGIN)} className="px-10 py-4 bg-white/5 border border-white/20 rounded-full font-orbitron font-bold text-lg hover:bg-white/10 transition-all text-white">ENTRAR</button>
             </div>
           </div>
-        </div>
-        <div className="p-6 bg-white/5 border-t border-white/10 text-center italic text-xs text-white/40">
-          "Yo, {currentUser?.firstName}, declaro ser parte oficial de SpaceTramoya X y me comprometo a mantener la fidelidad, el respeto y la confidencialidad de esta comunidad."
-        </div>
-      </div>
+        )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <button onClick={() => setView(AppView.SPACEBANK)} className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-6 hover:bg-space-cyan/10 transition-all group relative overflow-hidden">
-          <div className="flex justify-between items-center w-full relative z-10">
-             <div className="p-4 bg-space-cyan/10 rounded-2xl"><Wallet className="text-space-cyan" size={32} /></div>
-             <ChevronRight className="text-white/20" />
+        {view === AppView.REGISTER && (
+          <div className="max-w-2xl mx-auto bg-white/5 p-10 rounded-[40px] border border-white/10 shadow-2xl relative overflow-hidden">
+            <BackButton to={AppView.HOME} />
+            <h2 className="text-3xl font-orbitron font-black text-center mb-8 uppercase text-white">Registro Ghost</h2>
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={(e) => {
+              e.preventDefault();
+              const d = new FormData(e.currentTarget);
+              if (!isOfficeOpen()) return alert('Sistema cerrado (6:00 AM - 11:30 PM).');
+              if (confirm('¿Confirmas los términos y condiciones de SpaceTramoya X? Serás redirigido a Gmail.')) {
+                const body = `SOLICITUD DE REGISTRO\n\nNombre: ${d.get('name')}\nApellido: ${d.get('last')}\nPaís: ${d.get('country')}\nWhatsApp: ${d.get('phone')}\nEmail: ${d.get('email')}\nClave: ${d.get('pass')}`;
+                window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=REGISTRO GHOST&body=${encodeURIComponent(body)}`;
+                setView(AppView.HOME);
+                alert('Solicitud enviada. Recibirás tu activación en las próximas horas.');
+              }
+            }}>
+              <input name="name" className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="Nombre" required />
+              <input name="last" className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="Apellido" required />
+              <input name="country" className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="País" required />
+              <input name="phone" className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="WhatsApp" required />
+              <input name="email" type="email" className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="Correo" required />
+              <input name="pass" type="password" className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-2xl text-white outline-none" placeholder="Contraseña" required />
+              <button type="submit" disabled={!isOfficeOpen()} className="w-full md:col-span-2 py-5 bg-gradient-to-r from-space-purple to-space-cyan rounded-2xl font-orbitron font-black text-xl text-white flex items-center justify-center gap-3">
+                <Mail /> ENVIAR INSCRIPCIÓN GMAIL
+              </button>
+            </form>
           </div>
-          <div className="text-left relative z-10">
-            <p className="font-orbitron font-bold text-2xl mb-1 text-white uppercase tracking-tighter">Space Bank</p>
-            <p className="text-space-cyan font-orbitron font-black text-3xl">{currentUser?.balance} <span className="text-sm">NV</span></p>
-          </div>
-        </button>
-        
-        <div className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4">
-           <div className="flex justify-between items-start mb-2">
-              <p className="font-orbitron font-bold text-xl text-white uppercase tracking-tighter">Notificaciones</p>
-              <Bell size={24} className="text-space-purple" />
-           </div>
-           <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-              {notifications.filter(n => n.userId === currentUser?.id).length === 0 ? (
-                <p className="text-xs opacity-20 text-center py-6 uppercase font-orbitron">Sin actividad</p>
-              ) : (
-                notifications.filter(n => n.userId === currentUser?.id).map(n => (
-                  <div key={n.id} className={`p-4 rounded-2xl border ${n.isBonus ? 'bg-space-purple/20 border-space-purple/30' : 'bg-white/5 border-white/10'} flex gap-3 items-start`}>
-                    <div className="mt-1">{n.isBonus ? <Gift className="text-space-purple" size={16} /> : <CheckCircle2 className="text-space-cyan" size={16} />}</div>
-                    <div>
-                      <p className="font-bold text-[10px] uppercase text-space-cyan">{n.title}</p>
-                      <p className="text-[11px] text-white/80 mt-1 leading-tight">{n.message}</p>
-                      <p className="text-[9px] text-white/30 mt-1 uppercase font-mono">{new Date(n.date).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-           </div>
-        </div>
-      </div>
-    </div>
-  );
+        )}
 
-  const SpaceBankView = () => {
-    const [receiverId, setReceiverId] = useState('');
-    const [amount, setAmount] = useState('');
-    const [reason, setReason] = useState('');
-    const [tab, setTab] = useState<'send' | 'history'>('send');
-    
-    const receiver = users.find(u => u.id === receiverId);
-    const balanceAfter = currentUser ? currentUser.balance - Number(amount) : 0;
-    const userTxs = transactions.filter(t => t.fromId === currentUser?.id || t.toId === currentUser?.id);
-
-    const handleTransferRequest = () => {
-      if (!receiver) return alert('El ID de receptor no existe en la red Ghost.');
-      const ref = generateReference();
-      const subject = encodeURIComponent(`SOLICITUD TRANSFERENCIA - REF ${ref}`);
-      const body = encodeURIComponent(`
---- SOLICITUD DE MOVIMIENTO SPACEBANK ---
-REF: ${ref}
-FECHA: ${new Date().toLocaleString()}
-
-DATOS DEL REMITENTE:
-ID: ${currentUser?.id}
-SALDO ACTUAL: ${currentUser?.balance} NV
-
-DATOS DEL RECEPTOR:
-ID: ${receiverId}
-NOMBRE: ${receiver.firstName} ${receiver.lastName}
-
-MONTO: ${amount} NV
-MOTIVO: ${reason}
-
-Este correo es una solicitud oficial dirigida a ${OFFICIAL_EMAIL}.
-      `);
-      
-      alert(`Redirigiendo a Gmail para enviar la solicitud a ${OFFICIAL_EMAIL}.`);
-      
-      // Registrar en notificaciones la solicitud realizada
-      addNotification(
-        currentUser?.id || '', 
-        'SOLICITUD DE ENVÍO GENERADA', 
-        `Has solicitado transferir ${amount} NV a ${receiver.firstName} (ID: ${receiverId}). Pendiente de aprobación manual.`
-      );
-
-      window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=${subject}&body=${body}`;
-    };
-
-    return (
-      <div className="pt-24 px-4 pb-12 max-w-4xl mx-auto space-y-8">
-        <BackButton to={AppView.DASHBOARD} />
-        <div className="p-10 bg-gradient-to-br from-space-deep to-space-blue/30 rounded-[40px] border border-white/10 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden shadow-2xl">
-          <div className="flex items-center gap-6 relative z-10">
-            <div className="w-20 h-20 bg-white rounded-2xl p-2 flex items-center justify-center">
-              <img src={BANK_LOGO} className="w-full h-full object-contain" alt="Bank" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-orbitron font-black italic text-white uppercase tracking-tighter">Space Bank</h2>
-              <p className="text-[10px] text-space-cyan tracking-[0.3em] uppercase">Monedero Virtual Nóvares</p>
-            </div>
-          </div>
-          <div className="text-center md:text-right relative z-10">
-            <p className="text-xs text-white/40 uppercase font-orbitron tracking-widest mb-2">Disponible</p>
-            <p className="text-5xl font-orbitron font-black text-white">{currentUser?.balance} <span className="text-xl text-space-cyan">NV</span></p>
-          </div>
-        </div>
-
-        <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
-          <button onClick={() => setTab('send')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'send' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>ENVIAR</button>
-          <button onClick={() => setTab('history')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'history' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>MOVIMIENTOS</button>
-        </div>
-
-        {tab === 'send' ? (
-          <div className="max-w-md mx-auto space-y-6 bg-white/5 p-10 rounded-[40px] border border-white/10 shadow-2xl">
+        {view === AppView.LOGIN && (
+          <div className="max-w-md mx-auto bg-white/5 p-12 rounded-[50px] border border-white/10 shadow-2xl text-white">
+            <BackButton to={AppView.HOME} />
+            <h2 className="text-3xl font-orbitron font-black text-center mb-10 uppercase italic">Identificación</h2>
             <div className="space-y-6">
-              <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan font-mono" placeholder="ID Receptor (Ej: 0002)" value={receiverId} onChange={e => setReceiverId(e.target.value)} />
-              {receiver && <p className="text-[10px] text-green-400 font-bold ml-2">✔ DESTINO: {receiver.firstName} {receiver.lastName}</p>}
-              <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan font-orbitron" type="number" placeholder="Monto Nóvares" value={amount} onChange={e => setAmount(e.target.value)} />
-              <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan" placeholder="Motivo del envío" value={reason} onChange={e => setReason(e.target.value)} />
-              {Number(amount) > 0 && (
-                <div className="p-4 bg-white/5 rounded-2xl text-xs space-y-2 text-white/60">
-                  <p className="flex justify-between"><span>Disponible:</span> <span>{currentUser?.balance} NV</span></p>
-                  <p className="flex justify-between text-red-400"><span>A transferir:</span> <span>-{amount} NV</span></p>
-                  <p className="flex justify-between font-bold text-white pt-2 border-t border-white/10"><span>Restante:</span> <span className={balanceAfter < 0 ? 'text-red-500' : 'text-green-400'}>{balanceAfter} NV</span></p>
+              <input id="loginId" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center" placeholder="ID MEMBER" />
+              <input id="loginPw" type="password" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center" placeholder="CONTRASEÑA" />
+              <button onClick={() => {
+                const id = (document.getElementById('loginId') as HTMLInputElement).value;
+                const pw = (document.getElementById('loginPw') as HTMLInputElement).value;
+                const u = users.find(x => x.id === id && x.password === pw);
+                if(u) { setCurrentUser(u); setView(AppView.DASHBOARD); } else { alert('Credenciales incorrectas.'); }
+              }} className="w-full py-5 bg-gradient-to-r from-space-blue to-space-purple rounded-2xl font-orbitron font-black text-xl text-white shadow-xl">ENTRAR</button>
+            </div>
+          </div>
+        )}
+
+        {view === AppView.DASHBOARD && currentUser && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="p-8 bg-gradient-to-br from-space-purple/20 to-space-blue/20 border border-white/10 rounded-3xl flex justify-between items-center text-white">
+              <div>
+                <h2 className="text-3xl font-orbitron font-black italic">HOLA, {currentUser.firstName}</h2>
+                <p className="opacity-60 flex items-center gap-2 mt-1"><Clock size={16} /> {getLocalTime(currentUser.country)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-space-cyan font-bold">SALDO DISPONIBLE</p>
+                <p className="text-4xl font-orbitron font-black">{currentUser.balance} <span className="text-sm">NV</span></p>
+              </div>
+            </div>
+
+            <div className="bg-space-deep border-2 border-space-cyan/30 rounded-3xl overflow-hidden shadow-2xl p-8 flex flex-col md:flex-row gap-8 items-center text-white">
+              <div className="w-32 h-32 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10"><UserIcon size={64} className="opacity-20" /></div>
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-2xl font-bold">{currentUser.firstName} {currentUser.lastName}</h3>
+                <p className="text-space-cyan font-mono font-bold uppercase tracking-widest bg-space-cyan/10 px-3 py-1 rounded-full inline-block text-xs mt-2">ID: {currentUser.id}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 text-sm opacity-80">
+                  <p><strong>WA:</strong> {currentUser.phone.slice(0,5)}***{currentUser.phone.slice(-1)}</p>
+                  <p><strong>PAÍS:</strong> {currentUser.country}</p>
+                  <p className="sm:col-span-2"><strong>EMAIL:</strong> {currentUser.email}</p>
                 </div>
-              )}
-              <button disabled={!receiver || !amount || balanceAfter < 0} onClick={handleTransferRequest} className="w-full py-6 bg-gradient-to-r from-space-purple to-space-blue text-white font-orbitron font-black text-xl rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-20">
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button onClick={() => setView(AppView.SPACEBANK)} className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-6 hover:bg-space-cyan/10 transition-all text-white">
+                <div className="flex justify-between items-center w-full">
+                  <div className="p-4 bg-space-cyan/10 rounded-2xl"><Wallet className="text-space-cyan" size={32} /></div>
+                  <ChevronRight />
+                </div>
+                <div className="text-left">
+                  <p className="font-orbitron font-bold text-2xl uppercase tracking-tighter">Space Bank</p>
+                  <p className="text-space-cyan font-orbitron font-black text-3xl">{currentUser.balance} NV</p>
+                </div>
+              </button>
+              <div className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white">
+                <div className="flex justify-between items-start">
+                  <p className="font-orbitron font-bold text-xl uppercase">Alertas</p>
+                  <Bell size={24} className="text-space-purple" />
+                </div>
+                <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                  {notifications.filter(n => n.userId === currentUser.id).length === 0 ? (
+                    <p className="text-xs opacity-20 text-center py-10 font-orbitron uppercase">Sin actividad</p>
+                  ) : (
+                    notifications.filter(n => n.userId === currentUser.id).map(n => (
+                      <div key={n.id} className={`p-4 rounded-2xl border text-white ${n.isBonus ? 'bg-space-purple/20 border-space-purple/30' : 'bg-white/5 border-white/10'} flex gap-3`}>
+                        {n.isBonus ? <Gift size={16} /> : <CheckCircle2 size={16} />}
+                        <div>
+                          <p className="font-bold text-[10px] uppercase text-space-cyan">{n.title}</p>
+                          <p className="text-[11px] opacity-80 mt-1">{n.message}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === AppView.SPACEBANK && currentUser && (
+          <div className="space-y-8 animate-fade-in">
+            <BackButton to={AppView.DASHBOARD} />
+            <div className="p-10 bg-gradient-to-br from-space-deep to-space-blue/30 rounded-[40px] border border-white/10 flex flex-col md:flex-row justify-between items-center gap-8 shadow-2xl text-white relative overflow-hidden">
+              <div className="flex items-center gap-6">
+                <img src={BANK_LOGO} className="w-20 h-20 object-contain bg-white rounded-2xl p-2" alt="Bank" />
+                <h2 className="text-3xl font-orbitron font-black italic uppercase">Space Bank</h2>
+              </div>
+              <div className="text-right">
+                <p className="text-xs opacity-40 uppercase font-orbitron">Disponible</p>
+                <p className="text-5xl font-orbitron font-black">{currentUser.balance} <span className="text-xl text-space-cyan">NV</span></p>
+              </div>
+            </div>
+            <div className="max-w-md mx-auto bg-white/5 p-10 rounded-[40px] border border-white/10 shadow-2xl text-white space-y-6">
+              <input id="txId" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none" placeholder="ID Receptor" />
+              <input id="txAmt" type="number" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none font-orbitron" placeholder="Monto Nóvares" />
+              <input id="txRes" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none" placeholder="Motivo" />
+              <button onClick={() => {
+                const rid = (document.getElementById('txId') as HTMLInputElement).value;
+                const ramt = Number((document.getElementById('txAmt') as HTMLInputElement).value);
+                const rres = (document.getElementById('txRes') as HTMLInputElement).value;
+                const rec = users.find(u => u.id === rid);
+                if(!rec) return alert('ID no encontrado.');
+                if(ramt > currentUser.balance) return alert('Saldo insuficiente.');
+                if(confirm(`¿Solicitar transferencia de ${ramt} NV a ${rec.firstName}?`)) {
+                  const ref = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join('');
+                  const mailBody = `SOLICITUD TRANSFERENCIA\nRef: ${ref}\nDe: ${currentUser.id}\nA: ${rid}\nMonto: ${ramt}\nMotivo: ${rres}`;
+                  addNotification(currentUser.id, 'TRANSFERENCIA SOLICITADA', `Enviada solicitud por ${ramt} NV. REF: ...${ref.slice(-4)}`);
+                  window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=TRANSFERENCIA NV&body=${encodeURIComponent(mailBody)}`;
+                }
+              }} className="w-full py-6 bg-gradient-to-r from-space-purple to-space-blue rounded-2xl font-orbitron font-black text-xl flex items-center justify-center gap-3">
                 <Send size={24} /> SOLICITAR ENVÍO
               </button>
             </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <input className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl text-white outline-none focus:border-space-cyan" placeholder="Buscar Referencia (Últimos 4 dígitos)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-            {userTxs.filter(t => t.id.endsWith(searchQuery)).length === 0 ? (
-              <p className="text-center py-20 opacity-20 text-white font-orbitron">SIN REGISTROS</p>
-            ) : (
-              userTxs.filter(t => t.id.endsWith(searchQuery)).map(t => (
-                <div key={t.id} className="p-6 bg-white/5 border border-white/10 rounded-[30px] flex justify-between items-center text-white">
-                  <div className="flex gap-4 items-center">
-                     <div className={`p-3 rounded-full ${t.toId === currentUser?.id ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                        {t.toId === currentUser?.id ? <ArrowDownCircle className="text-green-400" /> : <ArrowUpCircle className="text-red-400" />}
-                     </div>
-                     <div>
-                      <p className="text-[10px] opacity-30 font-mono">...{t.id.slice(-4)}</p>
-                      <p className="font-bold">{t.toId === currentUser?.id ? `DE: ${t.fromName}` : `A: ${t.toName}`}</p>
-                      <p className="text-xs opacity-60">{t.reason}</p>
-                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-orbitron font-black text-xl ${t.toId === currentUser?.id ? 'text-green-400' : 'text-red-400'}`}>
-                      {t.toId === currentUser?.id ? '+' : '-'}{t.amount}
-                    </p>
-                    <p className="text-[10px] opacity-20 uppercase">{new Date(t.date).toLocaleDateString()}</p>
+        )}
+
+        {view === AppView.ADMIN_LOGIN && (
+          <div className="max-w-md mx-auto bg-white/5 border border-red-500/20 p-12 rounded-[50px] shadow-2xl text-white">
+            <BackButton to={AppView.HOME} />
+            <h2 className="text-3xl font-orbitron font-black text-center mb-10 text-red-500 uppercase italic">Ghost Terminal</h2>
+            <div className="space-y-6 text-center">
+              <input id="admU" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center" placeholder="USER" />
+              <input id="admP" type="password" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center" placeholder="PASS" />
+              <input id="admC" className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none text-center tracking-[1em]" maxLength={6} placeholder="000000" />
+              <button onClick={() => {
+                const u = (document.getElementById('admU') as HTMLInputElement).value;
+                const p = (document.getElementById('admP') as HTMLInputElement).value;
+                const c = (document.getElementById('admC') as HTMLInputElement).value;
+                if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass && c === ADMIN_CREDENTIALS.securityCode) setView(AppView.ADMIN_PANEL); else alert('SISTEMA BLOQUEADO');
+              }} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white">AUTORIZAR</button>
+            </div>
+          </div>
+        )}
+
+        {view === AppView.ADMIN_PANEL && (
+          <div className="space-y-8 animate-fade-in">
+            <BackButton to={AppView.HOME} />
+            <h2 className="text-4xl font-orbitron font-black text-red-500 uppercase italic">Ghost Admin</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {users.map(u => (
+                <div key={u.id} className="p-6 bg-white/5 border border-white/10 rounded-3xl text-white">
+                  <p className="font-bold text-xl">{u.firstName} {u.lastName}</p>
+                  <p className="text-xs text-space-cyan font-mono font-bold tracking-widest uppercase mt-1">ID: {u.id}</p>
+                  <p className="text-2xl font-orbitron font-black mt-4">{u.balance} NV</p>
+                  <div className="flex flex-col gap-2 mt-4">
+                    <button onClick={() => {
+                      const val = prompt('Cantidad a abonar:');
+                      if(val) handleAdminSendFunds(u.id, Number(val), 'Crédito Ghost Directo');
+                    }} className="py-2 bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest">ABONAR NV</button>
+                    <button onClick={() => {if(confirm(`¿Eliminar a ${u.firstName}?`)) setUsers(users.filter(x => x.id !== u.id))}} className="py-2 bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest">ELIMINAR MIEMBRO</button>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
         )}
-      </div>
-    );
-  };
-
-  const AdminPanelView = () => {
-    const [tab, setTab] = useState<'users' | 'funds'>('users');
-    const [selUser, setSelUser] = useState('');
-    const [amt, setAmt] = useState('');
-    const [res, setRes] = useState('');
-
-    return (
-      <div className="pt-24 px-4 pb-12 max-w-6xl mx-auto">
-        <BackButton to={AppView.HOME} />
-        <h2 className="text-4xl font-orbitron font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-white to-red-500 tracking-tighter italic uppercase text-white">Ghost Admin</h2>
-        <div className="flex gap-4 mb-10 p-1.5 bg-white/5 rounded-2xl border border-white/10">
-          <button onClick={() => setTab('users')} className={`flex-1 px-10 py-4 rounded-xl font-orbitron font-bold ${tab === 'users' ? 'bg-white text-space-deep' : 'text-white/40'}`}>MIEMBROS</button>
-          <button onClick={() => setTab('funds')} className={`flex-1 px-10 py-4 rounded-xl font-orbitron font-bold ${tab === 'funds' ? 'bg-white text-space-deep' : 'text-white/40'}`}>ABONO GHOST</button>
-        </div>
-        {tab === 'users' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {users.map(u => (
-              <div key={u.id} className="p-8 bg-white/5 border border-white/10 rounded-3xl text-white">
-                <p className="font-bold text-xl">{u.firstName} {u.lastName}</p>
-                <p className="text-xs text-space-cyan font-mono uppercase tracking-widest font-black">ID: {u.id}</p>
-                <p className="text-2xl font-orbitron font-black mt-4">{u.balance} NV</p>
-                <button onClick={() => {if(confirm(`¿Eliminar a ${u.firstName}?`)) setUsers(users.filter(x => x.id !== u.id))}} className="mt-4 w-full py-2 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20">ELIMINAR MIEMBRO</button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="max-w-md mx-auto space-y-6 bg-white/5 p-12 rounded-[50px] border border-white/10 text-white shadow-2xl">
-            <h3 className="text-2xl font-orbitron font-black uppercase italic text-center text-red-500">Inyectar Nóvares</h3>
-            <select className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 text-white" onChange={e => setSelUser(e.target.value)}>
-              <option value="">Miembro Destino...</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} (#{u.id})</option>)}
-            </select>
-            <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 font-orbitron text-white text-xl" placeholder="Cantidad" type="number" onChange={e => setAmt(e.target.value)} />
-            <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 text-white" placeholder="Razón del Abono" onChange={e => setRes(e.target.value)} />
-            <button onClick={() => {if(!selUser || !amt || !res) return alert('Campos incompletos'); handleAdminSendFunds(selUser, Number(amt), res)}} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white shadow-2xl shadow-red-600/30">EJECUTAR ABONO</button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const LoginView = () => {
-    const [id, setId] = useState('');
-    const [pw, setPw] = useState('');
-    return (
-      <div className="pt-32 px-6 flex flex-col items-center">
-        <BackButton to={AppView.HOME} />
-        <div className="w-full max-w-md bg-white/5 border border-white/10 p-12 rounded-[50px] shadow-2xl backdrop-blur-xl text-white">
-          <h2 className="text-4xl font-orbitron font-black text-center mb-10 tracking-tighter italic uppercase">Acceso Member</h2>
-          <div className="space-y-6">
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-space-cyan font-mono text-white text-center tracking-[0.2em]" placeholder="ID MEMBER" onChange={e => setId(e.target.value)} />
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-space-cyan text-white text-center" type="password" placeholder="CONTRASEÑA" onChange={e => setPw(e.target.value)} />
-            <button onClick={() => {
-              const u = users.find(x => x.id === id && x.password === pw);
-              if(u) { setCurrentUser(u); setView(AppView.DASHBOARD); } else { alert('Acceso denegado. Revisa tus datos.'); }
-            }} className="w-full py-5 bg-gradient-to-r from-space-blue to-space-purple rounded-2xl font-orbitron font-black text-xl text-white shadow-xl">IDENTIFICARSE</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const AdminLoginView = () => {
-    const [u, setU] = useState('');
-    const [p, setP] = useState('');
-    const [c, setC] = useState('');
-    return (
-      <div className="pt-32 px-6 flex flex-col items-center">
-        <BackButton to={AppView.HOME} />
-        <div className="w-full max-w-md bg-white/5 border border-red-500/20 p-12 rounded-[50px] text-white shadow-2xl">
-          <h2 className="text-3xl font-orbitron font-black text-center mb-10 text-red-500 tracking-tighter italic uppercase">Ghost Terminal</h2>
-          <div className="space-y-6">
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-red-500 text-white" placeholder="USUARIO" onChange={e => setU(e.target.value)} />
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-red-500 text-white" type="password" placeholder="CLAVE" onChange={e => setP(e.target.value)} />
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none text-center font-black tracking-[1em] text-2xl focus:border-red-500 text-white" maxLength={6} placeholder="000000" onChange={e => setC(e.target.value)} />
-            <button onClick={() => {
-              if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass && c === ADMIN_CREDENTIALS.securityCode) setView(AppView.ADMIN_PANEL); else alert('SISTEMA BLOQUEADO: ACCESO NO AUTORIZADO');
-            }} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white shadow-xl shadow-red-600/30">AUTORIZAR</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-space-deep font-inter text-slate-100 overflow-x-hidden selection:bg-space-cyan selection:text-space-deep">
-      <Header />
-      <main className="relative z-10 max-w-[100vw]">
-        {view === AppView.HOME && <HomeView />}
-        {view === AppView.REGISTER && <RegisterView />}
-        {view === AppView.LOGIN && <LoginView />}
-        {view === AppView.DASHBOARD && <DashboardView />}
-        {view === AppView.ADMIN_LOGIN && <AdminLoginView />}
-        {view === AppView.ADMIN_PANEL && <AdminPanelView />}
-        {view === AppView.SPACEBANK && <SpaceBankView />}
       </main>
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
+
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-30">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-space-purple blur-[160px] rounded-full animate-pulse"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-space-blue blur-[160px] rounded-full animate-pulse delay-1000"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-space-blue blur-[160px] rounded-full animate-pulse delay-700"></div>
       </div>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.3); border-radius: 10px; }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );
