@@ -39,13 +39,14 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos V10 (Iniciales de usuario y Notificaciones completas)
+  // Inicialización de base de datos V11 (Actualización de saldos 0001 y 0002)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V10');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V10');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V10');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V11');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V11');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V11');
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
+    const orgCreditDate = new Date().toISOString();
     
     const initialUsers: User[] = [
       {
@@ -56,7 +57,7 @@ const App: React.FC = () => {
         phone: '584121351217',
         email: `luis0001${CORPORATE_DOMAIN}`,
         password: 'v9451679',
-        balance: 10100,
+        balance: 70000,
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -68,7 +69,7 @@ const App: React.FC = () => {
         phone: '50375431210',
         email: `miss0002${CORPORATE_DOMAIN}`,
         password: 'missslam0121',
-        balance: 2600,
+        balance: 5000,
         status: 'active',
         createdAt: new Date().toISOString()
       },
@@ -98,40 +99,50 @@ const App: React.FC = () => {
       }
     ];
 
-    const initialNotifs: Notification[] = initialUsers.map(u => ({
-      id: `bonus-2026-${u.id}`,
-      userId: u.id,
-      title: 'FELIZ AÑO DE TRAMOYAS 2026',
-      message: 'Regalo especial de inicio de año para la familia STX.',
-      amount: 100,
-      date: bonusDate,
-      isBonus: true,
-      imageUrl: BONUS_IMAGE_2026
-    }));
-
-    const initialTxs: Transaction[] = initialUsers.map(u => ({
-      id: `REF-BONUS-2026-${u.id}-0000`,
-      fromId: 'ADMIN',
-      fromName: 'SpaceTramoya X Admin',
-      toId: u.id,
-      toName: u.firstName,
-      amount: 100,
-      reason: 'Crédito STX: FELIZ AÑO DE TRAMOYAS 2026',
-      date: bonusDate,
-      type: 'bonus'
-    }));
+    const initialNotifs: Notification[] = [
+      ...initialUsers.map(u => ({
+        id: `bonus-2026-${u.id}`,
+        userId: u.id,
+        title: 'FELIZ AÑO DE TRAMOYAS 2026',
+        message: 'Regalo especial de inicio de año para la familia STX.',
+        amount: 100,
+        date: bonusDate,
+        isBonus: true,
+        imageUrl: BONUS_IMAGE_2026
+      })),
+      {
+        id: 'org-credit-0001',
+        userId: '0001',
+        title: 'CRÉDITO DE ORGANIZACIÓN',
+        message: 'Abono especial de parte de la organización de SpaceTramoya X y La Casa de la Tramoya.',
+        amount: 70000,
+        date: orgCreditDate,
+        isBonus: true,
+        imageUrl: BANK_LOGO
+      },
+      {
+        id: 'org-credit-0002',
+        userId: '0002',
+        title: 'CRÉDITO DE ORGANIZACIÓN',
+        message: 'Abono especial de parte de la organización de SpaceTramoya X y La Casa de la Tramoya.',
+        amount: 5000,
+        date: orgCreditDate,
+        isBonus: true,
+        imageUrl: BANK_LOGO
+      }
+    ];
 
     setUsers(savedUsers ? JSON.parse(savedUsers) : initialUsers);
-    setTransactions(savedTx ? JSON.parse(savedTx) : initialTxs);
+    setTransactions(savedTx ? JSON.parse(savedTx) : []);
     setNotifications(savedNotif ? JSON.parse(savedNotif) : initialNotifs);
   }, []);
 
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V10', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V11', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V10', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V10', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V11', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V11', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
