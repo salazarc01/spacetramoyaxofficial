@@ -39,11 +39,11 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos V8 (Actualización de Alex Duarte)
+  // Inicialización de base de datos V9 (Actualización Alex Duarte y Notificaciones)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V8');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V8');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V8');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V9');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V9');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V9');
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
     
@@ -128,10 +128,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V8', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V9', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V8', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V8', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V9', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V9', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
@@ -243,7 +243,9 @@ REF: ${ref}
 DE: ${currentUser?.firstName} (ID: ${currentUser?.id})
 A: ${receiver.firstName} (ID: ${receiverId})
 MONTO: ${numAmount} NV
-MOTIVO: ${reason || 'Sin motivo'}`;
+MOTIVO: ${reason || 'Sin motivo'}
+SALDO DISPONIBLE: ${currentBalance} NV
+SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
 
       window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=TRANSFERENCIA STX REF ${ref.slice(-4)}&body=${encodeURIComponent(mailBody)}`;
     };
@@ -287,6 +289,20 @@ MOTIVO: ${reason || 'Sin motivo'}`;
             <div className="space-y-2">
               <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Monto NV</label>
               <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none font-orbitron focus:border-space-cyan" placeholder="0.00" />
+              {numAmount > 0 && (
+                <div className="mt-2 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col gap-1">
+                  <p className="text-[10px] opacity-40 uppercase font-orbitron flex justify-between">
+                    Disponible: <span className="text-white">{currentBalance} NV</span>
+                  </p>
+                  <p className={`text-[10px] uppercase font-orbitron flex justify-between font-bold ${balanceAfter < 0 ? 'text-red-400' : 'text-space-cyan'}`}>
+                    Tras transferencia: <span>{balanceAfter} NV</span>
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Motivo de transferencia</label>
+              <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="Ej: Pago de servicio" />
             </div>
             <button disabled={!receiver || numAmount <= 0 || balanceAfter < 0} onClick={handleTransferRequest} className="w-full py-5 bg-gradient-to-r from-space-purple to-space-blue rounded-xl font-orbitron font-black text-lg active:scale-95 disabled:opacity-20 shadow-lg">ENVIAR SOLICITUD GMAIL</button>
           </div>
@@ -429,25 +445,34 @@ MOTIVO: ${reason || 'Sin motivo'}`;
               
               <div className="p-6 sm:p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white">
                 <div className="flex justify-between items-start">
-                  <p className="font-orbitron font-bold text-xl uppercase tracking-tighter">Historial Crédito</p>
+                  <p className="font-orbitron font-bold text-xl uppercase tracking-tighter">Notificaciones</p>
                   <Bell size={20} className="text-space-purple" />
                 </div>
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
                   {notifications.filter(n => n.userId === currentUser.id).length === 0 ? (
-                    <p className="text-xs opacity-20 text-center py-10 font-orbitron uppercase">Sin registros</p>
+                    <p className="text-xs opacity-20 text-center py-10 font-orbitron uppercase tracking-widest">Sin notificaciones</p>
                   ) : (
                     notifications.filter(n => n.userId === currentUser.id).map(n => (
-                      <div key={n.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden text-white flex flex-col shadow-xl animate-fade-in group w-full max-w-[280px] mx-auto">
+                      <div key={n.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden text-white flex flex-col shadow-xl animate-fade-in group w-full max-w-[320px] mx-auto transition-all hover:bg-white/[0.08]">
                         {n.imageUrl && (
-                          <div className="w-full p-2">
-                             <img src={n.imageUrl} className="w-full h-auto object-contain border-2 border-white rounded-2xl group-hover:scale-[1.02] transition-transform duration-500 shadow-md" alt="Crédito STX" />
+                          <div className="w-full p-2 flex justify-center">
+                             <img 
+                                src={n.imageUrl} 
+                                className="w-full h-auto object-contain border-[3px] border-white rounded-[24px] group-hover:scale-[1.02] transition-transform duration-500 shadow-2xl" 
+                                alt="Notificación STX" 
+                             />
                           </div>
                         )}
-                        <div className="p-3 space-y-1">
-                          <p className="text-[8px] text-space-cyan font-orbitron font-bold uppercase tracking-[0.2em]">Crédito STX</p>
-                          <p className="font-orbitron font-black text-[10px] leading-tight uppercase italic truncate">{n.title}</p>
-                          <div className="flex justify-between items-end pt-1">
-                             <p className="text-lg font-orbitron font-black text-space-cyan">+{n.amount} NV</p>
+                        <div className="p-4 space-y-1">
+                          <p className="text-[8px] text-space-cyan font-orbitron font-bold uppercase tracking-[0.2em]">{n.isBonus ? 'Crédito STX' : 'Alerta STX'}</p>
+                          <p className="font-orbitron font-black text-xs leading-tight uppercase italic truncate">{n.title}</p>
+                          <p className="text-[9px] opacity-60 leading-normal">{n.message}</p>
+                          <div className="flex justify-between items-end pt-2">
+                             {n.amount ? (
+                               <p className="text-lg font-orbitron font-black text-space-cyan">+{n.amount} NV</p>
+                             ) : (
+                               <div className="w-1"></div>
+                             )}
                              <p className="text-[6px] opacity-30 uppercase font-bold text-right">{new Date(n.date).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</p>
                           </div>
                         </div>
@@ -501,7 +526,7 @@ MOTIVO: ${reason || 'Sin motivo'}`;
                       if(val && !isNaN(Number(val))) handleAdminSendFunds(u.id, Number(val), 'Abono Directo');
                     }} className="w-full py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-green-500 hover:text-white transition-all">ABONAR NV</button>
                     <button onClick={() => {
-                      const val = prompt(`Nombre del Crédito STX para ${u.firstName}:`);
+                      const val = prompt(`Nombre de la Notificación para ${u.firstName}:`);
                       const amt = prompt(`Monto en Nóvares:`);
                       if(val && amt && !isNaN(Number(amt))) handleAdminSendFunds(u.id, Number(amt), val, true);
                     }} className="w-full py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-purple-500 hover:text-white transition-all">DAR CRÉDITO STX</button>
