@@ -2,13 +2,21 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Ajustamos la base al nombre del repositorio para que los assets carguen correctamente en GitHub Pages
 export default defineConfig({
   plugins: [react()],
-  base: '/spacetramoyaxoff/',
+  base: './', // Cambiado a relativo para máxima compatibilidad con Vercel y subcarpetas de GitHub
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser'
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
+  },
+  server: {
+    port: 3000
   }
 });

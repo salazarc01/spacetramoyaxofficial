@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Wallet, 
@@ -9,14 +9,14 @@ import {
   Bell, 
   LogOut, 
   Search,
-  PlusCircle,
   Clock,
   ChevronRight,
   ShieldAlert,
   ArrowDownCircle,
   ArrowUpCircle,
   Gift,
-  CheckCircle2
+  CheckCircle2,
+  Mail
 } from 'lucide-react';
 import { AppView, User, Transaction, Notification } from './types';
 
@@ -39,9 +39,9 @@ const App: React.FC = () => {
 
   // Carga inicial de datos
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_USERS_V12');
-    const savedTx = localStorage.getItem('STX_TX_V12');
-    const savedNotif = localStorage.getItem('STX_NOTIF_V12');
+    const savedUsers = localStorage.getItem('STX_DATABASE_USERS');
+    const savedTx = localStorage.getItem('STX_DATABASE_TX');
+    const savedNotif = localStorage.getItem('STX_DATABASE_NOTIF');
 
     const initialUsers: User[] = [
       {
@@ -95,10 +95,10 @@ const App: React.FC = () => {
   // Persistencia de datos
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_USERS_V12', JSON.stringify(users));
+      localStorage.setItem('STX_DATABASE_USERS', JSON.stringify(users));
     }
-    localStorage.setItem('STX_TX_V12', JSON.stringify(transactions));
-    localStorage.setItem('STX_NOTIF_V12', JSON.stringify(notifications));
+    localStorage.setItem('STX_DATABASE_TX', JSON.stringify(transactions));
+    localStorage.setItem('STX_DATABASE_NOTIF', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   // Utilidades
@@ -152,7 +152,7 @@ const App: React.FC = () => {
     addNotification(
       userId, 
       amount >= 1000 ? '¡BONO ESPECIAL RECIBIDO!' : 'ABONO GHOST EXITOSO', 
-      `Se han acreditado ${amount} Nóvares a tu cuenta. Motivo: ${reason}. REF: ${ref}`,
+      `Se han acreditado ${amount} Nóvares a tu cuenta por motivo de: ${reason}. REF: ${ref}`,
       amount >= 1000
     );
 
@@ -264,7 +264,6 @@ const App: React.FC = () => {
         const subject = encodeURIComponent("SOLICITUD DE INSCRIPCIÓN - SPACETRAMOYA X");
         const body = encodeURIComponent(`
 --- SOLICITUD DE REGISTRO OFICIAL ---
-DESTINO: ${OFFICIAL_EMAIL}
 FECHA: ${new Date().toLocaleString()}
 
 DATOS DEL ASPIRANTE:
@@ -275,10 +274,10 @@ WHATSAPP: ${formData.phone}
 CORREO: ${formData.email}
 PASSWORD ELEGIDO: ${formData.password}
 
-Acepto los términos y condiciones de SpaceTramoya X y solicito mi activación.
+Solicito formalmente mi activación manual en el sistema SpaceTramoya X.
         `);
 
-        alert("Gracias por registrarte. En las próximas horas recibirás un correo con tu activación. Hasta que no seas activado manualmente, no podrás iniciar sesión.");
+        alert(`¡Mensaje preparado! Ahora serás redirigido a Gmail para enviar tu solicitud a ${OFFICIAL_EMAIL}. Por favor, no modifiques el contenido del correo.`);
         window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=${subject}&body=${body}`;
         setView(AppView.HOME);
       }
@@ -290,19 +289,40 @@ Acepto los términos y condiciones de SpaceTramoya X y solicito mi activación.
         <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[40px] shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-space-purple via-space-cyan to-space-blue"></div>
           <div className="mb-8 text-center">
-            <h2 className="text-4xl font-orbitron font-black text-center mb-2 tracking-tighter italic text-white uppercase">Registro</h2>
-            <p className="text-white/40 text-sm">Completa tus datos para unirte a la familia X</p>
+            <h2 className="text-4xl font-orbitron font-black text-center mb-2 tracking-tighter italic text-white uppercase">Formulario de Inscripción</h2>
+            <p className="text-white/40 text-sm">Ingresa tus datos reales para la validación Ghost</p>
           </div>
           <form onSubmit={handleFormSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="Nombre" required value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="Apellido" required value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="País" required value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} />
-              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" placeholder="WhatsApp" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-              <input className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" type="email" placeholder="Email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              <input className="w-full md:col-span-2 bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white" type="password" placeholder="Contraseña" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+              <div className="space-y-2">
+                <label className="text-[10px] text-white/40 ml-2 font-orbitron uppercase tracking-widest">Nombre</label>
+                <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white transition-all" placeholder="Nombre Real" required value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] text-white/40 ml-2 font-orbitron uppercase tracking-widest">Apellido</label>
+                <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white transition-all" placeholder="Apellido Real" required value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] text-white/40 ml-2 font-orbitron uppercase tracking-widest">País de Origen</label>
+                <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white transition-all" placeholder="Venezuela, Honduras, etc." required value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] text-white/40 ml-2 font-orbitron uppercase tracking-widest">WhatsApp Personal</label>
+                <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white transition-all" placeholder="Ej: 58 412..." required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-[10px] text-white/40 ml-2 font-orbitron uppercase tracking-widest">Correo Principal</label>
+                <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white transition-all" type="email" placeholder="usuario@gmail.com" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-[10px] text-white/40 ml-2 font-orbitron uppercase tracking-widest">Nueva Contraseña</label>
+                <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-space-cyan text-white transition-all" type="password" placeholder="Define tu clave de acceso" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+              </div>
             </div>
-            <button type="submit" disabled={!isOfficeOpen()} className="w-full py-5 bg-gradient-to-r from-space-purple to-space-cyan rounded-2xl font-orbitron font-black text-xl shadow-2xl text-white">ENVIAR INSCRIPCIÓN</button>
+            <button type="submit" disabled={!isOfficeOpen()} className="w-full py-5 bg-gradient-to-r from-space-purple via-space-blue to-space-cyan rounded-2xl font-orbitron font-black text-xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all text-white flex items-center justify-center gap-3">
+              <Mail size={24} /> ENVIAR SOLICITUD A GMAIL
+            </button>
+            <p className="text-center text-[10px] text-white/20 uppercase tracking-[0.2em]">Al pulsar, confirmas que todos tus datos son verídicos.</p>
           </form>
         </div>
       </div>
@@ -352,25 +372,28 @@ Acepto los términos y condiciones de SpaceTramoya X y solicito mi activación.
              <ChevronRight className="text-white/20" />
           </div>
           <div className="text-left relative z-10">
-            <p className="font-orbitron font-bold text-2xl mb-1 text-white uppercase">Space Bank</p>
-            <p className="text-space-cyan font-orbitron font-black text-xl">{currentUser?.balance} NV</p>
+            <p className="font-orbitron font-bold text-2xl mb-1 text-white uppercase tracking-tighter">Space Bank</p>
+            <p className="text-space-cyan font-orbitron font-black text-3xl">{currentUser?.balance} <span className="text-sm">NV</span></p>
           </div>
         </button>
         
         <div className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4">
            <div className="flex justify-between items-start mb-2">
-              <p className="font-orbitron font-bold text-xl text-white">NOTIFICACIONES</p>
+              <p className="font-orbitron font-bold text-xl text-white uppercase tracking-tighter">Notificaciones</p>
               <Bell size={24} className="text-space-purple" />
            </div>
            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
               {notifications.filter(n => n.userId === currentUser?.id).length === 0 ? (
-                <p className="text-xs opacity-20 text-center py-6">Sin novedades</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-20">
+                  <Bell size={32} />
+                  <p className="text-[10px] mt-2 uppercase font-orbitron">No hay actividad reciente</p>
+                </div>
               ) : (
                 notifications.filter(n => n.userId === currentUser?.id).map(n => (
                   <div key={n.id} className={`p-4 rounded-2xl border ${n.isBonus ? 'bg-space-purple/20 border-space-purple/30' : 'bg-white/5 border-white/10'} flex gap-3 items-start`}>
                     <div className="mt-1">{n.isBonus ? <Gift className="text-space-purple" size={16} /> : <CheckCircle2 className="text-space-cyan" size={16} />}</div>
-                    <div>
-                      <p className="font-bold text-xs uppercase text-space-cyan">{n.title}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[10px] uppercase text-space-cyan tracking-wider">{n.title}</p>
                       <p className="text-[11px] text-white/80 mt-1 leading-tight">{n.message}</p>
                       <p className="text-[9px] text-white/30 mt-1 uppercase font-mono">{new Date(n.date).toLocaleString()}</p>
                     </div>
@@ -394,27 +417,32 @@ Acepto los términos y condiciones de SpaceTramoya X y solicito mi activación.
     const userTxs = transactions.filter(t => t.fromId === currentUser?.id || t.toId === currentUser?.id);
 
     const handleTransferRequest = () => {
-      if (!receiver) return alert('El ID de receptor no existe.');
+      if (!receiver) return alert('El ID de receptor no existe en la red Ghost.');
       const ref = generateReference();
       const subject = encodeURIComponent(`SOLICITUD TRANSFERENCIA - REF ${ref}`);
       const body = encodeURIComponent(`
 --- SOLICITUD DE MOVIMIENTO SPACEBANK ---
 REF: ${ref}
-DESTINO: ${OFFICIAL_EMAIL}
+FECHA: ${new Date().toLocaleString()}
 
-DATOS:
-REMITENTE (ID): ${currentUser?.id}
-RECEPTOR (ID): ${receiverId}
-NOMBRE DEL RECEPTOR: ${receiver.firstName} ${receiver.lastName}
-MONTO: ${amount} NV
+DATOS DEL REMITENTE:
+ID: ${currentUser?.id}
+SALDO ACTUAL: ${currentUser?.balance} NV
+
+DATOS DEL RECEPTOR:
+ID: ${receiverId}
+NOMBRE: ${receiver.firstName} ${receiver.lastName}
+
+MONTO A TRANSFERIR: ${amount} NV
 MOTIVO: ${reason}
 
-SALDO ACTUAL: ${currentUser?.balance} NV
-SALDO DESPUÉS: ${balanceAfter} NV
+SALDO RESULTANTE ESTIMADO: ${balanceAfter} NV
+
+Favor procesar esta solicitud para su aprobación manual.
       `);
       
-      alert(`Se abrirá Gmail para enviar la solicitud oficial a ${OFFICIAL_EMAIL}.`);
-      addNotification(currentUser?.id || '', 'SOLICITUD DE ENVÍO GENERADA', `Has solicitado transferir ${amount} NV a ${receiver.firstName} (ID: ${receiverId}). Pendiente de aprobación. Ref: ...${ref.slice(-4)}`);
+      alert(`Redirigiendo a Gmail para enviar la solicitud de transferencia a ${OFFICIAL_EMAIL}. El historial se actualizará una vez aprobada por administración.`);
+      addNotification(currentUser?.id || '', 'TRANSFERENCIA SOLICITADA', `Has solicitado transferir ${amount} NV a ID ${receiverId}. Referencia de seguimiento: ${ref}`);
       window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=${subject}&body=${body}`;
     };
 
@@ -427,63 +455,78 @@ SALDO DESPUÉS: ${balanceAfter} NV
               <img src={BANK_LOGO} className="w-full h-full object-contain" alt="Bank" />
             </div>
             <div>
-              <h2 className="text-3xl font-orbitron font-black italic text-white uppercase">Space Bank</h2>
-              <p className="text-[10px] text-space-cyan tracking-[0.3em] uppercase">Monto Total Disponible</p>
+              <h2 className="text-3xl font-orbitron font-black italic text-white uppercase tracking-tighter">Space Bank</h2>
+              <p className="text-[10px] text-space-cyan tracking-[0.3em] uppercase">Gestión de Activos Nóvares</p>
             </div>
           </div>
           <div className="text-center md:text-right relative z-10">
-            <p className="text-xs text-white/40 uppercase font-orbitron tracking-widest mb-2">MI SALDO</p>
+            <p className="text-xs text-white/40 uppercase font-orbitron tracking-widest mb-2">Mi Saldo</p>
             <p className="text-5xl font-orbitron font-black text-white">{currentUser?.balance} <span className="text-xl text-space-cyan">NV</span></p>
           </div>
         </div>
 
         <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
-          <button onClick={() => setTab('send')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'send' ? 'bg-space-cyan text-space-deep' : 'text-white/40'}`}>ENVIAR FONDOS</button>
-          <button onClick={() => setTab('history')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'history' ? 'bg-space-cyan text-space-deep' : 'text-white/40'}`}>MOVIMIENTOS</button>
+          <button onClick={() => setTab('send')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'send' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>ENVIAR</button>
+          <button onClick={() => setTab('history')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'history' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>HISTORIAL</button>
         </div>
 
         {tab === 'send' ? (
-          <div className="max-w-md mx-auto space-y-6 bg-white/5 p-10 rounded-[40px] border border-white/10">
+          <div className="max-w-md mx-auto space-y-6 bg-white/5 p-10 rounded-[40px] border border-white/10 shadow-2xl">
             <div className="space-y-6">
-              <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan font-mono" placeholder="ID del Receptor (Ej: 0002)" value={receiverId} onChange={e => setReceiverId(e.target.value)} />
-              {receiver && <p className="text-[10px] text-green-400 font-bold ml-2">✔ DESTINATARIO: {receiver.firstName} {receiver.lastName}</p>}
-              <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan font-orbitron" type="number" placeholder="Monto Nóvares" value={amount} onChange={e => setAmount(e.target.value)} />
-              <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan" placeholder="Motivo del envío" value={reason} onChange={e => setReason(e.target.value)} />
+              <div className="space-y-1">
+                <label className="text-[10px] text-white/40 ml-2 uppercase font-orbitron tracking-widest">ID Destinatario</label>
+                <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan font-mono" placeholder="Ej: 0002" value={receiverId} onChange={e => setReceiverId(e.target.value)} />
+                {receiver && <p className="text-[10px] text-green-400 font-bold ml-2 italic">✔ ENCONTRADO: {receiver.firstName} {receiver.lastName}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-white/40 ml-2 uppercase font-orbitron tracking-widest">Monto a Enviar</label>
+                <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan font-orbitron text-xl" type="number" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-white/40 ml-2 uppercase font-orbitron tracking-widest">Motivo</label>
+                <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-space-cyan" placeholder="Ej: Pago de comisión" value={reason} onChange={e => setReason(e.target.value)} />
+              </div>
               {Number(amount) > 0 && (
-                <div className="p-4 bg-white/5 rounded-2xl text-xs space-y-2 text-white/60">
+                <div className="p-4 bg-white/5 rounded-2xl text-xs space-y-2 text-white/60 border border-white/5">
                   <p className="flex justify-between"><span>Disponible:</span> <span>{currentUser?.balance} NV</span></p>
-                  <p className="flex justify-between text-red-400"><span>A transferir:</span> <span>-{amount} NV</span></p>
-                  <p className="flex justify-between font-bold text-white pt-2 border-t border-white/10"><span>Restante:</span> <span className={balanceAfter < 0 ? 'text-red-500' : 'text-green-400'}>{balanceAfter} NV</span></p>
+                  <p className="flex justify-between text-red-400"><span>Deducción:</span> <span>-{amount} NV</span></p>
+                  <p className="flex justify-between font-bold text-white pt-2 border-t border-white/10"><span>Saldo Final:</span> <span className={balanceAfter < 0 ? 'text-red-500' : 'text-green-400'}>{balanceAfter} NV</span></p>
                 </div>
               )}
-              <button disabled={!receiver || !amount || balanceAfter < 0} onClick={handleTransferRequest} className="w-full py-6 bg-gradient-to-r from-space-purple to-space-blue text-white font-orbitron font-black text-xl rounded-2xl shadow-xl disabled:opacity-20 flex items-center justify-center gap-3">
-                <Send size={24} /> SOLICITAR ENVÍO
+              <button disabled={!receiver || !amount || balanceAfter < 0} onClick={handleTransferRequest} className="w-full py-6 bg-gradient-to-r from-space-purple to-space-blue text-white font-orbitron font-black text-xl rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-3">
+                <Send size={24} /> SOLICITAR TRANSFERENCIA
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <input className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl text-white outline-none focus:border-space-cyan" placeholder="Filtrar por últimos 4 dígitos de Referencia..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <div className="relative mb-6">
+               <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30" size={20} />
+               <input className="w-full bg-white/5 border border-white/10 p-5 pl-14 rounded-3xl text-white outline-none focus:border-space-cyan" placeholder="Filtrar por últimos 4 dígitos de Referencia..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            </div>
             {userTxs.filter(t => t.id.endsWith(searchQuery)).length === 0 ? (
-              <p className="text-center py-20 opacity-20 text-white font-orbitron">SIN REGISTROS</p>
+              <div className="text-center py-20 opacity-20">
+                <Search size={64} className="mx-auto" />
+                <p className="text-sm mt-4 uppercase font-orbitron tracking-widest">Sin movimientos registrados</p>
+              </div>
             ) : (
               userTxs.filter(t => t.id.endsWith(searchQuery)).map(t => (
-                <div key={t.id} className="p-6 bg-white/5 border border-white/10 rounded-[30px] flex justify-between items-center text-white">
+                <div key={t.id} className="p-6 bg-white/5 border border-white/10 rounded-[30px] flex justify-between items-center text-white group hover:bg-white/10 transition-all">
                   <div className="flex gap-4 items-center">
                      <div className={`p-3 rounded-full ${t.toId === currentUser?.id ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
                         {t.toId === currentUser?.id ? <ArrowDownCircle className="text-green-400" /> : <ArrowUpCircle className="text-red-400" />}
                      </div>
                      <div>
-                      <p className="text-[10px] opacity-30 font-mono">REF: ...{t.id.slice(-4)}</p>
+                      <p className="text-[10px] opacity-30 font-mono tracking-widest uppercase">ID: ...{t.id.slice(-4)}</p>
                       <p className="font-bold">{t.toId === currentUser?.id ? `DE: ${t.fromName}` : `A: ${t.toName}`}</p>
-                      <p className="text-xs opacity-60">{t.reason}</p>
+                      <p className="text-xs opacity-60 italic">{t.reason}</p>
                      </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-orbitron font-black text-xl ${t.toId === currentUser?.id ? 'text-green-400' : 'text-red-400'}`}>
+                    <p className={`font-orbitron font-black text-2xl ${t.toId === currentUser?.id ? 'text-green-400' : 'text-red-400'}`}>
                       {t.toId === currentUser?.id ? '+' : '-'}{t.amount}
                     </p>
-                    <p className="text-[10px] opacity-20 uppercase">{new Date(t.date).toLocaleDateString()}</p>
+                    <p className="text-[10px] opacity-20 uppercase font-bold">{new Date(t.date).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))
@@ -503,32 +546,38 @@ SALDO DESPUÉS: ${balanceAfter} NV
     return (
       <div className="pt-24 px-4 pb-12 max-w-6xl mx-auto">
         <BackButton to={AppView.HOME} />
-        <h2 className="text-4xl font-orbitron font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-white to-red-500 tracking-tighter italic uppercase text-white">Panel Ghost</h2>
+        <h2 className="text-4xl font-orbitron font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-white to-red-500 tracking-tighter italic uppercase text-white">Ghost Admin Panel</h2>
         <div className="flex gap-4 mb-10 p-1.5 bg-white/5 rounded-2xl border border-white/10">
-          <button onClick={() => setTab('users')} className={`flex-1 px-10 py-4 rounded-xl font-orbitron font-bold ${tab === 'users' ? 'bg-white text-space-deep' : 'text-white/40'}`}>MIEMBROS</button>
-          <button onClick={() => setTab('funds')} className={`flex-1 px-10 py-4 rounded-xl font-orbitron font-bold ${tab === 'funds' ? 'bg-white text-space-deep' : 'text-white/40'}`}>CRÉDITO GHOST</button>
+          <button onClick={() => setTab('users')} className={`flex-1 px-10 py-4 rounded-xl font-orbitron font-bold transition-all ${tab === 'users' ? 'bg-white text-space-deep shadow-xl' : 'text-white/40'}`}>MIEMBROS</button>
+          <button onClick={() => setTab('funds')} className={`flex-1 px-10 py-4 rounded-xl font-orbitron font-bold transition-all ${tab === 'funds' ? 'bg-white text-space-deep shadow-xl' : 'text-white/40'}`}>CRÉDITO GHOST</button>
         </div>
         {tab === 'users' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map(u => (
-              <div key={u.id} className="p-8 bg-white/5 border border-white/10 rounded-3xl text-white">
+              <div key={u.id} className="p-8 bg-white/5 border border-white/10 rounded-3xl text-white relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-space-cyan/5 blur-3xl rounded-full"></div>
                 <p className="font-bold text-xl">{u.firstName} {u.lastName}</p>
-                <p className="text-xs text-space-cyan font-mono uppercase">ID: {u.id}</p>
-                <p className="text-2xl font-orbitron font-black mt-4">{u.balance} NV</p>
-                <button onClick={() => {if(confirm('¿Eliminar?')) setUsers(users.filter(x => x.id !== u.id))}} className="mt-4 w-full py-2 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20">ELIMINAR</button>
+                <p className="text-xs text-space-cyan font-mono uppercase tracking-widest font-black">ID: {u.id}</p>
+                <div className="mt-6">
+                  <p className="text-[10px] uppercase text-white/30 font-orbitron">Saldo Actual</p>
+                  <p className="text-3xl font-orbitron font-black text-white">{u.balance} <span className="text-xs">NV</span></p>
+                </div>
+                <button onClick={() => {if(confirm(`¿Estás seguro de eliminar a ${u.firstName}? Esta acción es irreversible.`)) setUsers(users.filter(x => x.id !== u.id))}} className="mt-6 w-full py-3 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">ELIMINAR DE LA RED</button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="max-w-md mx-auto space-y-6 bg-white/5 p-12 rounded-[50px] border border-white/10 text-white">
-            <h3 className="text-2xl font-orbitron font-black uppercase italic text-center">Inyectar Nóvares</h3>
-            <select className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 text-white" onChange={e => setSelUser(e.target.value)}>
-              <option value="">Destinatario...</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} (#{u.id})</option>)}
-            </select>
-            <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 font-orbitron text-white" placeholder="Monto" type="number" onChange={e => setAmt(e.target.value)} />
-            <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 text-white" placeholder="Motivo" onChange={e => setRes(e.target.value)} />
-            <button onClick={() => {if(!selUser || !amt || !res) return alert('Incompleto'); handleAdminSendFunds(selUser, Number(amt), res)}} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white">EJECUTAR ABONO GHOST</button>
+          <div className="max-w-md mx-auto space-y-6 bg-white/5 p-12 rounded-[50px] border border-white/10 text-white shadow-2xl relative">
+            <h3 className="text-2xl font-orbitron font-black uppercase italic text-center text-red-500">Inyectar Nóvares</h3>
+            <div className="space-y-4">
+               <select className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 text-white" onChange={e => setSelUser(e.target.value)}>
+                <option value="">Seleccionar Destinatario...</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} (#{u.id})</option>)}
+              </select>
+              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 font-orbitron text-white text-xl" placeholder="Monto" type="number" onChange={e => setAmt(e.target.value)} />
+              <input className="w-full bg-space-deep border border-white/10 p-4 rounded-2xl outline-none focus:border-red-500 text-white" placeholder="Motivo del abono" onChange={e => setRes(e.target.value)} />
+              <button onClick={() => {if(!selUser || !amt || !res) return alert('Por favor, completa todos los campos.'); handleAdminSendFunds(selUser, Number(amt), res)}} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white shadow-2xl shadow-red-600/30 hover:scale-[1.02] active:scale-95 transition-all">EJECUTAR ABONO GHOST</button>
+            </div>
           </div>
         )}
       </div>
@@ -541,15 +590,16 @@ SALDO DESPUÉS: ${balanceAfter} NV
     return (
       <div className="pt-32 px-6 flex flex-col items-center">
         <BackButton to={AppView.HOME} />
-        <div className="w-full max-w-md bg-white/5 border border-white/10 p-12 rounded-[50px] shadow-2xl backdrop-blur-xl text-white">
-          <h2 className="text-4xl font-orbitron font-black text-center mb-10 tracking-tighter italic uppercase">Acceso</h2>
+        <div className="w-full max-w-md bg-white/5 border border-white/10 p-12 rounded-[50px] shadow-2xl backdrop-blur-xl text-white relative">
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-space-cyan rounded-3xl rotate-12 blur-3xl opacity-20"></div>
+          <h2 className="text-4xl font-orbitron font-black text-center mb-10 tracking-tighter italic uppercase">Acceso Member</h2>
           <div className="space-y-6">
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-space-cyan font-mono text-white" placeholder="Código (Ej: 0001)" onChange={e => setId(e.target.value)} />
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-space-cyan text-white" type="password" placeholder="Contraseña" onChange={e => setPw(e.target.value)} />
+            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-space-cyan font-mono text-white text-center tracking-widest" placeholder="CÓDIGO ID" onChange={e => setId(e.target.value)} />
+            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-space-cyan text-white text-center" type="password" placeholder="PASSWORD" onChange={e => setPw(e.target.value)} />
             <button onClick={() => {
               const u = users.find(x => x.id === id && x.password === pw);
-              if(u) { setCurrentUser(u); setView(AppView.DASHBOARD); } else { alert('Acceso denegado.'); }
-            }} className="w-full py-5 bg-gradient-to-r from-space-blue to-space-purple rounded-2xl font-orbitron font-black text-xl text-white">ENTRAR A LA RED</button>
+              if(u) { setCurrentUser(u); setView(AppView.DASHBOARD); } else { alert('Acceso Denegado. Credenciales incorrectas o cuenta no activa.'); }
+            }} className="w-full py-5 bg-gradient-to-r from-space-blue to-space-purple rounded-2xl font-orbitron font-black text-xl text-white hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-space-purple/20">IDENTIFICARSE</button>
           </div>
         </div>
       </div>
@@ -563,15 +613,15 @@ SALDO DESPUÉS: ${balanceAfter} NV
     return (
       <div className="pt-32 px-6 flex flex-col items-center">
         <BackButton to={AppView.HOME} />
-        <div className="w-full max-w-md bg-white/5 border border-red-500/20 p-12 rounded-[50px] text-white">
-          <h2 className="text-3xl font-orbitron font-black text-center mb-10 text-red-500 tracking-tighter italic uppercase">Ghost Access</h2>
+        <div className="w-full max-w-md bg-white/5 border border-red-500/20 p-12 rounded-[50px] text-white shadow-2xl backdrop-blur-xl">
+          <h2 className="text-3xl font-orbitron font-black text-center mb-10 text-red-500 tracking-tighter italic uppercase">Ghost Terminal</h2>
           <div className="space-y-6">
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-red-500 text-white" placeholder="GHOST_USER" onChange={e => setU(e.target.value)} />
-            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-red-500 text-white" type="password" placeholder="GHOST_PASS" onChange={e => setP(e.target.value)} />
+            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-red-500 text-white" placeholder="USUARIO GHOST" onChange={e => setU(e.target.value)} />
+            <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none focus:border-red-500 text-white" type="password" placeholder="CLAVE GHOST" onChange={e => setP(e.target.value)} />
             <input className="w-full bg-space-deep border border-white/10 p-5 rounded-2xl outline-none text-center font-black tracking-[1em] text-2xl focus:border-red-500 text-white" maxLength={6} placeholder="000000" onChange={e => setC(e.target.value)} />
             <button onClick={() => {
-              if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass && c === ADMIN_CREDENTIALS.securityCode) setView(AppView.ADMIN_PANEL); else alert('BLOQUEADO');
-            }} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white">AUTORIZAR GHOST</button>
+              if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass && c === ADMIN_CREDENTIALS.securityCode) setView(AppView.ADMIN_PANEL); else alert('ERROR DE PROTOCOLO: ACCESO BLOQUEADO');
+            }} className="w-full py-5 bg-red-600 rounded-2xl font-orbitron font-black text-xl text-white hover:bg-red-700 transition-all shadow-xl shadow-red-600/20">AUTORIZAR SISTEMA</button>
           </div>
         </div>
       </div>
