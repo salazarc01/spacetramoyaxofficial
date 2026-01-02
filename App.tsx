@@ -39,15 +39,14 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos V7 (Bono Año Nuevo incluido)
+  // Inicialización de base de datos V8 (Actualización de Alex Duarte)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V7');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V7');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V7');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V8');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V8');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V8');
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
     
-    // Usuarios oficiales actualizados
     const initialUsers: User[] = [
       {
         id: '0001',
@@ -99,7 +98,6 @@ const App: React.FC = () => {
       }
     ];
 
-    // Notificaciones de bono "FELIZ AÑO DE TRAMOYAS 2026"
     const initialNotifs: Notification[] = initialUsers.map(u => ({
       id: `bonus-2026-${u.id}`,
       userId: u.id,
@@ -111,7 +109,6 @@ const App: React.FC = () => {
       imageUrl: BONUS_IMAGE_2026
     }));
 
-    // Registro de transacciones de bono
     const initialTxs: Transaction[] = initialUsers.map(u => ({
       id: `REF-BONUS-2026-${u.id}-0000`,
       fromId: 'ADMIN',
@@ -119,7 +116,7 @@ const App: React.FC = () => {
       toId: u.id,
       toName: u.firstName,
       amount: 100,
-      reason: 'Bono FELIZ AÑO DE TRAMOYAS 2026',
+      reason: 'Crédito STX: FELIZ AÑO DE TRAMOYAS 2026',
       date: bonusDate,
       type: 'bonus'
     }));
@@ -129,13 +126,12 @@ const App: React.FC = () => {
     setNotifications(savedNotif ? JSON.parse(savedNotif) : initialNotifs);
   }, []);
 
-  // Persistencia V7
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V7', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V8', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V7', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V7', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V8', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V8', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
@@ -165,7 +161,7 @@ const App: React.FC = () => {
       toId: userId,
       toName: user?.firstName || 'Usuario',
       amount,
-      reason,
+      reason: isBonus ? `Crédito STX: ${reason}` : reason,
       date: new Date().toISOString(),
       type: isBonus ? 'bonus' : 'credit'
     };
@@ -431,23 +427,29 @@ MOTIVO: ${reason || 'Sin motivo'}`;
                 </div>
               </button>
               
-              <div className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white">
+              <div className="p-6 sm:p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white">
                 <div className="flex justify-between items-start">
-                  <p className="font-orbitron font-bold text-xl uppercase">Notificaciones</p>
+                  <p className="font-orbitron font-bold text-xl uppercase tracking-tighter">Historial Crédito</p>
                   <Bell size={20} className="text-space-purple" />
                 </div>
                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {notifications.filter(n => n.userId === currentUser.id).length === 0 ? (
-                    <p className="text-xs opacity-20 text-center py-10 font-orbitron">Sin mensajes</p>
+                    <p className="text-xs opacity-20 text-center py-10 font-orbitron uppercase">Sin registros</p>
                   ) : (
                     notifications.filter(n => n.userId === currentUser.id).map(n => (
-                      <div key={n.id} className="bg-white/5 border border-white/40 rounded-3xl overflow-hidden text-white flex flex-col p-0 shadow-lg shadow-white/5 animate-fade-in">
-                        {n.imageUrl && <img src={n.imageUrl} className="w-full h-auto object-cover border-b border-white/10" alt="Bono" />}
-                        <div className="p-5 space-y-1">
-                          <p className="text-[10px] text-space-cyan font-orbitron font-bold uppercase tracking-widest">Bono</p>
-                          <p className="font-orbitron font-black text-sm leading-tight uppercase italic">{n.title}</p>
-                          <p className="text-2xl font-orbitron font-black text-space-cyan mt-2">+{n.amount} NV</p>
-                          <p className="text-[8px] opacity-40 uppercase font-bold pt-2">{new Date(n.date).toLocaleString('es-ES')}</p>
+                      <div key={n.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden text-white flex flex-col shadow-xl animate-fade-in group w-full max-w-[280px] mx-auto">
+                        {n.imageUrl && (
+                          <div className="w-full bg-[#02020a] flex items-center justify-center p-1">
+                             <img src={n.imageUrl} className="w-full h-auto max-h-32 object-contain group-hover:scale-105 transition-transform duration-500 rounded-lg" alt="Crédito STX" />
+                          </div>
+                        )}
+                        <div className="p-3 space-y-1">
+                          <p className="text-[8px] text-space-cyan font-orbitron font-bold uppercase tracking-[0.2em]">Crédito STX</p>
+                          <p className="font-orbitron font-black text-[10px] leading-tight uppercase italic truncate">{n.title}</p>
+                          <div className="flex justify-between items-end pt-1">
+                             <p className="text-lg font-orbitron font-black text-space-cyan">+{n.amount} NV</p>
+                             <p className="text-[6px] opacity-30 uppercase font-bold text-right">{new Date(n.date).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</p>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -496,12 +498,13 @@ MOTIVO: ${reason || 'Sin motivo'}`;
                   <div className="flex flex-col gap-2">
                     <button onClick={() => {
                       const val = prompt(`Abonar a ${u.firstName}:`);
-                      if(val && !isNaN(Number(val))) handleAdminSendFunds(u.id, Number(val), 'Crédito Ghost');
+                      if(val && !isNaN(Number(val))) handleAdminSendFunds(u.id, Number(val), 'Abono Directo');
                     }} className="w-full py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-green-500 hover:text-white transition-all">ABONAR NV</button>
                     <button onClick={() => {
-                      const val = prompt(`Bono Especial a ${u.firstName}:`);
-                      if(val && !isNaN(Number(val))) handleAdminSendFunds(u.id, Number(val), 'Bono FELIZ AÑO DE TRAMOYAS 2026', true);
-                    }} className="w-full py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-purple-500 hover:text-white transition-all">DAR BONO CARTA</button>
+                      const val = prompt(`Nombre del Crédito STX para ${u.firstName}:`);
+                      const amt = prompt(`Monto en Nóvares:`);
+                      if(val && amt && !isNaN(Number(amt))) handleAdminSendFunds(u.id, Number(amt), val, true);
+                    }} className="w-full py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-purple-500 hover:text-white transition-all">DAR CRÉDITO STX</button>
                     <button onClick={() => {if(confirm(`¿ELIMINAR?`)) setUsers(users.filter(x => x.id !== u.id))}} className="w-full py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-all">ELIMINAR</button>
                   </div>
                 </div>
@@ -520,6 +523,7 @@ MOTIVO: ${reason || 'Sin motivo'}`;
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.4); border-radius: 10px; }
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        * { scroll-behavior: smooth; }
       `}</style>
     </div>
   );
