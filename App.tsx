@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   ArrowLeft, 
   Wallet, 
@@ -16,9 +17,18 @@ import {
   Gift,
   CheckCircle2,
   Mail,
-  Sparkles
+  Sparkles,
+  Cpu,
+  QrCode,
+  Maximize,
+  Share2,
+  Download,
+  Camera,
+  X,
+  UserCheck
 } from 'lucide-react';
 import { AppView, User, Transaction, Notification } from './types';
+import jsQR from 'https://esm.sh/jsqr@1.4.0';
 
 // INTERRUPTOR DE MODO AÑO NUEVO (DESACTIVADO)
 const IS_NEW_YEAR_MODE = false;
@@ -31,7 +41,6 @@ const ADMIN_CREDENTIALS = {
 
 const OFFICIAL_EMAIL = "soportespacetramoyax@gmail.com";
 const BANK_LOGO = "https://i.postimg.cc/kD3Pn8C6/Photoroom-20251229-195028.png";
-const BONUS_IMAGE_2026 = "https://i.postimg.cc/BvmKfFtJ/20260102-170520-0000.png";
 const CORPORATE_DOMAIN = "@tramoyax.cdlt";
 
 const App: React.FC = () => {
@@ -41,6 +50,12 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Helper for generating Account Number (same logic as Credit Card)
+  const getAccountNumber = (id: string) => {
+    const base = "4532" + id.padStart(4, '0') + "90870908";
+    return base.match(/.{1,4}/g)?.join(' ') || "4532 0000 9087 0908";
+  };
 
   // Inicialización de base de datos V16
   useEffect(() => {
@@ -132,16 +147,6 @@ const App: React.FC = () => {
         date: orgCreditDate,
         isBonus: true,
         imageUrl: BANK_LOGO
-      },
-      {
-        id: 'owner-credit-0004-v16',
-        userId: '0004',
-        title: 'CRÉDITO DE PROPIEDAD STX',
-        message: 'Abono de 500,000 NV por ser el dueño de todas las organizaciones que conforman SpaceTramoya X y La Casa de la Tramoya.',
-        amount: 500000,
-        date: orgCreditDate,
-        isBonus: true,
-        imageUrl: BANK_LOGO
       }
     ];
 
@@ -191,7 +196,6 @@ const App: React.FC = () => {
     };
     setTransactions(prev => [newTx, ...prev]);
 
-    // Fixed: Replaced the undefined variable 'imageUrl' with 'BANK_LOGO' as a default notification image.
     addNotification(
       userId, 
       reason, 
@@ -260,17 +264,196 @@ const App: React.FC = () => {
     );
   };
 
+  const CreditCard = ({ user }: { user: User }) => {
+    const cardNumber = useMemo(() => getAccountNumber(user.id), [user.id]);
+    const expiryDate = useMemo(() => {
+      const created = new Date(user.createdAt);
+      const year = created.getFullYear() + 2;
+      const month = (created.getMonth() + 1).toString().padStart(2, '0');
+      return `${month}/${year.toString().slice(-2)}`;
+    }, [user.createdAt]);
+
+    return (
+      <div className="relative w-full max-w-[380px] h-[220px] mx-auto rounded-[24px] overflow-hidden shadow-2xl transition-transform hover:scale-[1.02] duration-500 group border border-white/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-space-purple via-space-blue to-space-cyan group-hover:hue-rotate-15 transition-all duration-700"></div>
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]"></div>
+        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+          backgroundSize: '24px 24px'
+        }}></div>
+        <div className="relative h-full p-6 flex flex-col justify-between text-white font-orbitron">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
+                <span className="font-black italic text-sm">X</span>
+              </div>
+              <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-80">Space Bank</span>
+            </div>
+            <div className="w-12 h-9 bg-gradient-to-br from-yellow-300 via-yellow-600 to-yellow-400 rounded-lg shadow-inner flex items-center justify-center relative overflow-hidden">
+               <div className="absolute inset-0 opacity-40 border border-black/10"></div>
+               <div className="w-full h-[1px] bg-black/20 absolute top-1/4"></div>
+               <div className="w-full h-[1px] bg-black/20 absolute top-1/2"></div>
+               <div className="w-full h-[1px] bg-black/20 absolute top-3/4"></div>
+               <div className="h-full w-[1px] bg-black/20 absolute left-1/2"></div>
+               <Cpu size={20} className="text-black/30 z-10" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-xl sm:text-2xl font-black tracking-[0.15em] drop-shadow-md">
+              {cardNumber}
+            </p>
+          </div>
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col">
+              <span className="text-[8px] uppercase opacity-50 mb-1">Card Holder</span>
+              <p className="text-xs sm:text-sm font-bold tracking-wider uppercase italic">
+                {user.firstName} {user.lastName}
+              </p>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-[8px] uppercase opacity-50 mb-1">Expires</span>
+              <p className="text-xs sm:text-sm font-bold tracking-wider uppercase">
+                {expiryDate}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/20 blur-[40px] rounded-full pointer-events-none"></div>
+      </div>
+    );
+  };
+
+  const QRScannerModal = ({ isOpen, onClose, onScan }: { isOpen: boolean, onClose: () => void, onScan: (data: any) => void }) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [hasError, setHasError] = useState(false);
+    const requestRef = useRef<number>();
+
+    const scan = () => {
+      if (videoRef.current && canvasRef.current) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA && context) {
+          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+
+          if (code) {
+            try {
+              const data = JSON.parse(code.data);
+              if (data.app === 'STX_BANK') {
+                onScan(data);
+                return; // Stop scanning after find
+              }
+            } catch (e) {
+              // Not a valid STX QR
+            }
+          }
+        }
+      }
+      requestRef.current = requestAnimationFrame(scan);
+    };
+
+    useEffect(() => {
+      if (!isOpen) {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+        return;
+      }
+      let stream: MediaStream | null = null;
+      
+      const startCamera = async () => {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.setAttribute("playsinline", "true");
+            videoRef.current.play();
+            requestRef.current = requestAnimationFrame(scan);
+          }
+        } catch (err) {
+          console.error("Camera error:", err);
+          setHasError(true);
+        }
+      };
+
+      startCamera();
+
+      return () => {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      };
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 z-[100] bg-space-deep flex flex-col items-center justify-center p-6 animate-fade-in">
+        <button onClick={onClose} className="absolute top-8 right-8 p-3 bg-white/10 rounded-full text-white">
+          <X size={24} />
+        </button>
+        <div className="w-full max-w-md aspect-square bg-black rounded-3xl overflow-hidden relative border-2 border-space-cyan shadow-[0_0_50px_rgba(6,182,212,0.3)]">
+          {hasError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 text-white/60 font-orbitron">
+              <ShieldAlert size={48} className="text-red-500 mb-4" />
+              <p className="text-sm">ERROR DE CÁMARA</p>
+              <p className="text-[10px] uppercase mt-2">Por favor otorga permisos o usa un navegador compatible.</p>
+            </div>
+          ) : (
+            <video ref={videoRef} className="w-full h-full object-cover" muted />
+          )}
+          <canvas ref={canvasRef} className="hidden" />
+          <div className="absolute inset-0 border-[60px] border-black/40 pointer-events-none"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-space-cyan rounded-2xl">
+             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-space-cyan -ml-1 -mt-1"></div>
+             <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-space-cyan -mr-1 -mt-1"></div>
+             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-space-cyan -ml-1 -mb-1"></div>
+             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-space-cyan -mr-1 -mb-1"></div>
+             <div className="absolute top-0 left-0 w-full h-1 bg-space-cyan/50 animate-scan"></div>
+          </div>
+        </div>
+        <div className="mt-8 text-center space-y-2">
+           <h3 className="font-orbitron font-black text-2xl text-white italic uppercase tracking-tighter">Pago Rápido</h3>
+           <p className="text-xs text-space-cyan font-bold uppercase tracking-widest">Escaneando código oficial STX...</p>
+        </div>
+        <style>{`
+          @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+          .animate-scan { animation: scan 2s linear infinite; position: absolute; }
+        `}</style>
+      </div>
+    );
+  };
+
   const SpaceBankView = () => {
     const [receiverId, setReceiverId] = useState('');
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
-    const [tab, setTab] = useState<'send' | 'history'>('send');
+    const [tab, setTab] = useState<'send' | 'history' | 'tools'>('tools');
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [scannedData, setScannedData] = useState<any>(null);
     
     const receiver = users.find(u => u.id === receiverId);
     const numAmount = Number(amount);
     const currentBalance = currentUser?.balance || 0;
     const balanceAfter = currentBalance - numAmount;
     const userTxs = transactions.filter(t => t.fromId === currentUser?.id || t.toId === currentUser?.id);
+
+    // Official Account Data QR
+    const accountData = {
+      app: 'STX_BANK',
+      id: currentUser?.id,
+      firstName: currentUser?.firstName,
+      lastName: currentUser?.lastName,
+      acc: getAccountNumber(currentUser?.id || '')
+    };
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(JSON.stringify(accountData))}`;
 
     const handleTransferRequest = () => {
       if (!receiver) return alert('ID de receptor no válido.');
@@ -281,7 +464,8 @@ const App: React.FC = () => {
       const mailBody = `--- SOLICITUD DE TRANSFERENCIA ---
 REF: ${ref}
 DE: ${currentUser?.firstName} (ID: ${currentUser?.id})
-A: ${receiver.firstName} (ID: ${receiverId})
+A: ${receiver.firstName} ${receiver.lastName} (ID: ${receiverId})
+CUENTA DESTINO: ${getAccountNumber(receiverId)}
 MONTO: ${numAmount} NV
 MOTIVO: ${reason || 'Sin motivo'}
 SALDO DISPONIBLE: ${currentBalance} NV
@@ -290,42 +474,133 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
       window.location.href = `mailto:${OFFICIAL_EMAIL}?subject=TRANSFERENCIA STX REF ${ref.slice(-4)}&body=${encodeURIComponent(mailBody)}`;
     };
 
+    const shareByEmail = () => {
+      const body = `Hola, este es mi código oficial de cuenta SpaceTramoya X para transferencias rápidas.\n\nNombre: ${currentUser?.firstName} ${currentUser?.lastName}\nID: ${currentUser?.id}\nCuenta: ${getAccountNumber(currentUser?.id || '')}\nEnlace QR: ${qrUrl}`;
+      window.location.href = `mailto:?subject=Mi Código STX - ${currentUser?.firstName}&body=${encodeURIComponent(body)}`;
+    };
+
+    const shareByWhatsapp = () => {
+      const text = `Hola, este es mi código oficial de cuenta SpaceTramoya X.\n\n👤 *${currentUser?.firstName} ${currentUser?.lastName}*\n🆔 ID: *${currentUser?.id}*\n💳 Cuenta: *${getAccountNumber(currentUser?.id || '')}*\n\nUsa el scanner de Pago Rápido para transferirme.\nEnlace QR: ${qrUrl}`;
+      window.location.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    };
+
     return (
       <div className="space-y-6 sm:space-y-8 animate-fade-in w-full">
         <BackButton to={AppView.DASHBOARD} />
+        <QRScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onScan={(data) => {
+          setReceiverId(data.id);
+          setScannedData(data);
+          setIsScannerOpen(false);
+          setTab('send');
+        }} />
         
-        <div className="p-6 sm:p-10 bg-gradient-to-br from-space-deep to-space-blue/30 rounded-3xl sm:rounded-[40px] border border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-2xl text-white relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#02020a] border border-white/5 rounded-xl p-2 flex items-center justify-center">
-               <img src={BANK_LOGO} className="w-full h-full object-contain" alt="Logo" />
+        <div className="space-y-8">
+          {currentUser && <CreditCard user={currentUser} />}
+
+          <div className="p-6 sm:p-10 bg-gradient-to-br from-space-deep to-space-blue/30 rounded-3xl sm:rounded-[40px] border border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-2xl text-white relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#02020a] border border-white/5 rounded-xl p-2 flex items-center justify-center">
+                 <img src={BANK_LOGO} className="w-full h-full object-contain" alt="Logo" />
+              </div>
+              <div>
+                 <h2 className="text-2xl sm:text-3xl font-orbitron font-black italic uppercase">Space Bank</h2>
+                 <p className="text-[10px] text-space-cyan tracking-widest uppercase font-orbitron mt-1">Saldos STX</p>
+              </div>
             </div>
-            <div>
-               <h2 className="text-2xl sm:text-3xl font-orbitron font-black italic uppercase">Space Bank</h2>
-               <p className="text-[10px] text-space-cyan tracking-widest uppercase font-orbitron mt-1">Saldos STX</p>
+            <div className="text-center sm:text-right">
+              <p className="text-[10px] opacity-40 uppercase font-orbitron tracking-widest">Disponible</p>
+              <p className="text-4xl sm:text-5xl font-orbitron font-black">{currentBalance} <span className="text-lg text-space-cyan">NV</span></p>
             </div>
-          </div>
-          <div className="text-center sm:text-right">
-            <p className="text-[10px] opacity-40 uppercase font-orbitron tracking-widest">Disponible</p>
-            <p className="text-4xl sm:text-5xl font-orbitron font-black">{currentBalance} <span className="text-lg text-space-cyan">NV</span></p>
           </div>
         </div>
 
         <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+          <button onClick={() => setTab('tools')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'tools' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>OPCIONES</button>
           <button onClick={() => setTab('send')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'send' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>ENVIAR</button>
           <button onClick={() => setTab('history')} className={`flex-1 py-4 font-orbitron font-bold rounded-xl transition-all ${tab === 'history' ? 'bg-space-cyan text-space-deep shadow-lg' : 'text-white/40'}`}>HISTORIAL</button>
         </div>
 
-        {tab === 'send' ? (
-          <div className="max-w-md mx-auto bg-white/5 p-6 sm:p-10 rounded-3xl border border-white/10 shadow-2xl text-white space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">ID Receptor</label>
-              <input value={receiverId} onChange={(e) => setReceiverId(e.target.value)} className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="ID (Ej: 0002)" />
-              {receiverId && (
-                <p className={`text-[10px] font-bold uppercase italic ml-2 ${receiver ? 'text-green-400' : 'text-red-400'}`}>
-                  {receiver ? `DESTINO: ${receiver.firstName} ${receiver.lastName}` : "ID NO RECONOCIDO"}
-                </p>
-              )}
+        {tab === 'tools' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+            {/* Mi Código QR */}
+            <div className="p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col items-center gap-6 text-center">
+               <div className="w-48 h-48 bg-white p-4 rounded-3xl shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                  <img src={qrUrl} className="w-full h-full" alt="QR Cuenta" />
+               </div>
+               <div>
+                  <h3 className="font-orbitron font-black text-xl text-white uppercase italic">Mi Código STX</h3>
+                  <p className="text-[10px] text-space-cyan font-bold uppercase mt-1 tracking-widest">Contiene ID y Cuenta</p>
+               </div>
+               <div className="flex gap-4 w-full">
+                  <button onClick={shareByWhatsapp} className="flex-1 py-3 bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl text-xs font-orbitron font-bold flex items-center justify-center gap-2 hover:bg-green-500/30 transition-all">
+                     <Share2 size={14} /> WhatsApp
+                  </button>
+                  <button onClick={shareByEmail} className="flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl text-xs font-orbitron font-bold flex items-center justify-center gap-2 hover:bg-blue-500/30 transition-all">
+                     <Mail size={14} /> Gmail
+                  </button>
+               </div>
             </div>
+
+            {/* Pago Rápido Scanner */}
+            <div className="p-8 bg-gradient-to-br from-space-cyan/10 to-transparent border border-space-cyan/20 rounded-3xl flex flex-col justify-between gap-8 group">
+               <div className="space-y-4">
+                  <div className="w-16 h-16 bg-space-cyan/20 rounded-2xl flex items-center justify-center border border-space-cyan/20 group-hover:scale-110 transition-transform">
+                     <Camera className="text-space-cyan" size={32} />
+                  </div>
+                  <div className="text-left">
+                     <h3 className="font-orbitron font-black text-2xl text-white uppercase italic tracking-tighter leading-none">Pago Rápido</h3>
+                     <p className="text-xs text-space-cyan/60 font-medium mt-3 leading-relaxed">Escanea cualquier código QR oficial STX. Reconocimiento automático de nombre, apellido, ID y número de cuenta.</p>
+                  </div>
+               </div>
+               <button onClick={() => setIsScannerOpen(true)} className="w-full py-5 bg-space-cyan text-space-deep font-orbitron font-black text-lg rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                 <Maximize size={20} /> INICIAR ESCÁNER
+               </button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'send' && (
+          <div className="max-w-md mx-auto bg-white/5 p-6 sm:p-10 rounded-3xl border border-white/10 shadow-2xl text-white space-y-4 animate-fade-in">
+            <div className="flex justify-between items-center mb-2 px-2">
+               <h3 className="text-xs font-orbitron font-bold text-space-cyan uppercase tracking-widest">Nueva Transferencia</h3>
+               <button onClick={() => { setScannedData(null); setIsScannerOpen(true); }} className="text-[10px] font-orbitron flex items-center gap-2 text-white/40 hover:text-space-cyan transition-colors">
+                  <Camera size={14} /> USAR ESCÁNER
+               </button>
+            </div>
+            
+            {scannedData ? (
+               <div className="p-4 bg-space-cyan/10 border border-space-cyan/30 rounded-2xl space-y-3 animate-fade-in">
+                  <div className="flex justify-between items-start">
+                     <div>
+                        <p className="text-[8px] uppercase font-orbitron text-space-cyan tracking-widest">Destinatario Escaneado</p>
+                        <p className="font-orbitron font-black text-lg italic uppercase">{scannedData.firstName} {scannedData.lastName}</p>
+                     </div>
+                     <UserCheck className="text-space-cyan" size={20} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                     <div>
+                        <p className="text-[7px] uppercase font-orbitron opacity-50">ID Usuario</p>
+                        <p className="text-xs font-mono font-bold text-white/80">{scannedData.id}</p>
+                     </div>
+                     <div>
+                        <p className="text-[7px] uppercase font-orbitron opacity-50">N° de Cuenta</p>
+                        <p className="text-xs font-mono font-bold text-white/80">{scannedData.acc.slice(-9)}</p>
+                     </div>
+                  </div>
+                  <button onClick={() => { setScannedData(null); setReceiverId(''); }} className="w-full py-1 text-[8px] font-orbitron uppercase text-white/30 hover:text-red-400 transition-colors">Cambiar destino</button>
+               </div>
+            ) : (
+               <div className="space-y-2">
+                <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">ID Receptor</label>
+                <input value={receiverId} onChange={(e) => setReceiverId(e.target.value)} className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none focus:border-space-cyan transition-all" placeholder="ID (Ej: 0002)" />
+                {receiverId && (
+                  <p className={`text-[10px] font-bold uppercase italic ml-2 ${receiver ? 'text-green-400' : 'text-red-400'}`}>
+                    {receiver ? `DESTINO: ${receiver.firstName} ${receiver.lastName}` : "ID NO RECONOCIDO"}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="text-[10px] text-white/30 uppercase font-orbitron ml-2">Monto NV</label>
               <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-space-deep border border-white/10 p-4 rounded-xl text-white outline-none font-orbitron focus:border-space-cyan" placeholder="0.00" />
@@ -346,28 +621,34 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
             </div>
             <button disabled={!receiver || numAmount <= 0 || balanceAfter < 0} onClick={handleTransferRequest} className="w-full py-5 bg-gradient-to-r from-space-purple to-space-blue rounded-xl font-orbitron font-black text-lg active:scale-95 disabled:opacity-20 shadow-lg">ENVIAR SOLICITUD GMAIL</button>
           </div>
-        ) : (
-          <div className="space-y-4">
+        )}
+
+        {tab === 'history' && (
+          <div className="space-y-4 animate-fade-in">
             <input className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-white outline-none focus:border-space-cyan" placeholder="Buscar por REF (4 últimos)..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             <div className="space-y-3">
-              {userTxs.filter(t => t.id.endsWith(searchQuery)).map(t => (
-                <div key={t.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center text-white">
-                  <div className="flex gap-4 items-center">
-                     <div className={`p-3 rounded-full ${t.toId === currentUser?.id ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                        {t.toId === currentUser?.id ? <ArrowDownCircle className="text-green-400" /> : <ArrowUpCircle className="text-red-400" />}
-                     </div>
-                     <div>
-                      <p className="text-[9px] opacity-30 font-mono tracking-widest uppercase">REF: ...{t.id.slice(-4)}</p>
-                      <p className="font-bold text-sm">{t.toId === currentUser?.id ? `RECIBIDO DE: ${t.fromName}` : `ENVIADO A: ${t.toName}`}</p>
-                     </div>
+              {userTxs.filter(t => t.id.endsWith(searchQuery)).length === 0 ? (
+                <div className="text-center py-20 opacity-20 font-orbitron uppercase text-xs tracking-widest">Sin movimientos registrados</div>
+              ) : (
+                userTxs.filter(t => t.id.endsWith(searchQuery)).map(t => (
+                  <div key={t.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center text-white">
+                    <div className="flex gap-4 items-center">
+                       <div className={`p-3 rounded-full ${t.toId === currentUser?.id ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                          {t.toId === currentUser?.id ? <ArrowDownCircle className="text-green-400" /> : <ArrowUpCircle className="text-red-400" />}
+                       </div>
+                       <div>
+                        <p className="text-[9px] opacity-30 font-mono tracking-widest uppercase">REF: ...{t.id.slice(-4)}</p>
+                        <p className="font-bold text-sm">{t.toId === currentUser?.id ? `RECIBIDO DE: ${t.fromName}` : `ENVIADO A: ${t.toName}`}</p>
+                       </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-orbitron font-black text-lg ${t.toId === currentUser?.id ? 'text-green-400' : 'text-red-400'}`}>
+                        {t.toId === currentUser?.id ? '+' : '-'}{t.amount}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-orbitron font-black text-lg ${t.toId === currentUser?.id ? 'text-green-400' : 'text-red-400'}`}>
-                      {t.toId === currentUser?.id ? '+' : '-'}{t.amount}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
@@ -495,7 +776,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
                 </div>
               </button>
               
-              <div className="p-6 sm:p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white shadow-lg">
+              <div className="p-6 sm:p-8 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4 text-white shadow-lg overflow-hidden">
                 <div className="flex justify-between items-start">
                   <p className="font-orbitron font-bold text-xl uppercase tracking-tighter">Notificaciones</p>
                   <Bell size={20} className="text-space-purple" />
@@ -598,7 +879,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
       </main>
 
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20">
-        <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[60%] bg-space-purple blur-[160px] rounded-full animate-pulse transition-colors duration-1000"></div>
+        <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[60%] bg-space-glow blur-[160px] rounded-full animate-pulse transition-colors duration-1000"></div>
         <div className="absolute bottom-[-20%] right-[-10%] w-[100%] h-[60%] bg-space-blue blur-[160px] rounded-full animate-pulse delay-700 transition-colors duration-1000"></div>
       </div>
       <style>{`
