@@ -4,26 +4,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-    <title>SpaceTramoya X | Comunidad Exclusiva</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <title>SpaceTramoya X | Ultra-Nova Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        space: {
-                            deep: '#0a0a1f',
-                            purple: '#6d28d9',
-                            blue: '#1e40af',
-                            cyan: '#06b6d4',
-                            glow: '#a855f7'
+                        nova: {
+                            obsidian: '#020205',
+                            titanium: '#94a3b8',
+                            gold: '#eab308',
+                            emerald: '#10b981',
+                            indigo: '#1e1b4b',
+                            crimson: '#991b1b'
                         }
                     },
                     fontFamily: {
                         orbitron: ['Orbitron', 'sans-serif'],
                         inter: ['Inter', 'sans-serif'],
-                        cursive: ['Dancing Script', 'cursive']
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
                     }
                 }
             }
@@ -32,33 +43,42 @@
     <style>
         :root {
             --sat: env(safe-area-inset-top);
-            --sar: env(safe-area-inset-right);
             --sab: env(safe-area-inset-bottom);
-            --sal: env(safe-area-inset-left);
         }
         body {
-            background-color: #0a0a1f;
-            color: white;
+            background-color: #020205;
+            color: #f8fafc;
             margin: 0;
             padding: 0;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            width: 100%;
+            user-select: none;
         }
         #root {
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            background: radial-gradient(circle at top right, #1e1b4b 0%, #020205 60%);
         }
-        html {
-            background-color: #0a0a1f;
-            scrollbar-width: thin;
-            scrollbar-color: #6d28d9 #0a0a1f;
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        /* Ajustes de scroll suave para móvil */
-        * {
-            -webkit-overflow-scrolling: touch;
+        .gold-shadow {
+            box-shadow: 0 0 30px rgba(234, 179, 8, 0.15);
+        }
+        .emerald-glow {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020205;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e1b4b;
+            border-radius: 10px;
         }
     </style>
 <script type="importmap">
