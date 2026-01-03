@@ -16,9 +16,13 @@ import {
   ArrowUpCircle,
   Gift,
   CheckCircle2,
-  Mail
+  Mail,
+  Sparkles
 } from 'lucide-react';
 import { AppView, User, Transaction, Notification } from './types';
+
+// INTERRUPTOR DE MODO AÑO NUEVO
+const IS_NEW_YEAR_MODE = true;
 
 const ADMIN_CREDENTIALS = {
   user: 'ghostvip090870',
@@ -27,7 +31,7 @@ const ADMIN_CREDENTIALS = {
 };
 
 const OFFICIAL_EMAIL = "soportespacetramoyax@gmail.com";
-const BANK_LOGO = "https://i.postimg.cc/jjKR8VQP/Photoroom_20251227_172103.png";
+const BANK_LOGO = "https://i.postimg.cc/kD3Pn8C6/Photoroom-20251229-195028.png";
 const BONUS_IMAGE_2026 = "https://i.postimg.cc/BvmKfFtJ/20260102-170520-0000.png";
 const CORPORATE_DOMAIN = "@tramoyax.cdlt";
 
@@ -39,18 +43,15 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Inicialización de base de datos V15 (Cambio de Ghost a STX y créditos sumados)
+  // Inicialización de base de datos V16
   useEffect(() => {
-    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V15');
-    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V15');
-    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V15');
+    const savedUsers = localStorage.getItem('STX_DB_FINAL_USERS_V16');
+    const savedTx = localStorage.getItem('STX_DB_FINAL_TX_V16');
+    const savedNotif = localStorage.getItem('STX_DB_FINAL_NOTIF_V16');
 
     const bonusDate = "2026-01-02T17:05:00.000Z";
     const orgCreditDate = new Date().toISOString();
     
-    // User 0001: 10100 (base) + 70000 = 80100
-    // User 0002: 100 (base) + 5000 = 5100
-    // User 0004: 110 (base) + 500000 = 500110
     const initialUsers: User[] = [
       {
         id: '0001',
@@ -114,7 +115,7 @@ const App: React.FC = () => {
         imageUrl: BONUS_IMAGE_2026
       })),
       {
-        id: 'org-credit-0001-v15',
+        id: 'org-credit-0001-v16',
         userId: '0001',
         title: 'CRÉDITO DE ORGANIZACIÓN',
         message: 'Abono especial de parte de la organización de SpaceTramoya X y la Casa de la Tramoya.',
@@ -124,7 +125,7 @@ const App: React.FC = () => {
         imageUrl: BANK_LOGO
       },
       {
-        id: 'org-credit-0002-v15',
+        id: 'org-credit-0002-v16',
         userId: '0002',
         title: 'CRÉDITO DE ORGANIZACIÓN',
         message: 'Abono especial de parte de la organización de SpaceTramoya X y la Casa de la Tramoya.',
@@ -134,7 +135,7 @@ const App: React.FC = () => {
         imageUrl: BANK_LOGO
       },
       {
-        id: 'owner-credit-0004-v15',
+        id: 'owner-credit-0004-v16',
         userId: '0004',
         title: 'CRÉDITO DE PROPIEDAD STX',
         message: 'Abono de 500,000 NV por ser el dueño de todas las organizaciones que conforman SpaceTramoya X y La Casa de la Tramoya.',
@@ -152,10 +153,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('STX_DB_FINAL_USERS_V15', JSON.stringify(users));
+      localStorage.setItem('STX_DB_FINAL_USERS_V16', JSON.stringify(users));
     }
-    localStorage.setItem('STX_DB_FINAL_TX_V15', JSON.stringify(transactions));
-    localStorage.setItem('STX_DB_FINAL_NOTIF_V15', JSON.stringify(notifications));
+    localStorage.setItem('STX_DB_FINAL_TX_V16', JSON.stringify(transactions));
+    localStorage.setItem('STX_DB_FINAL_NOTIF_V16', JSON.stringify(notifications));
   }, [users, transactions, notifications]);
 
   const addNotification = (userId: string, title: string, message: string, amount?: number, isBonus: boolean = false, imageUrl?: string) => {
@@ -379,18 +380,39 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
       <Header />
       <main className="pt-20 sm:pt-24 px-4 pb-12 w-full max-w-4xl mx-auto relative z-10">
         {view === AppView.HOME && (
-          <div className="flex flex-col items-center justify-center min-h-[75vh] text-center space-y-8 animate-fade-in">
-            <div className="relative">
+          <div className="flex flex-col items-center justify-center min-h-[75vh] text-center space-y-8 animate-fade-in relative">
+            {/* Logo de la aplicación en el inicio */}
+            <div className="w-32 h-32 sm:w-48 sm:h-48 relative z-10 animate-pulse transition-all duration-1000">
+               <img src={BANK_LOGO} className="w-full h-full object-contain" alt="STX Logo" />
+            </div>
+
+            <div className="relative z-10">
               <div className="absolute inset-0 blur-3xl bg-space-purple/30 rounded-full scale-150"></div>
               <h1 className="relative font-orbitron text-5xl sm:text-7xl font-black italic tracking-tighter text-white uppercase leading-tight">
-                SPACE<span className="text-space-cyan block sm:inline">TRAMOYA</span> X
+                SPACE<span className="text-amber-500 block sm:inline">TRAMOYA</span> X
               </h1>
             </div>
-            <p className="text-lg sm:text-xl text-slate-300 max-w-xl mx-auto">La familia más exclusiva del entretenimiento y la tramoya digital.</p>
-            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <button onClick={() => setView(AppView.REGISTER)} className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-space-purple to-space-blue rounded-full font-orbitron font-bold text-lg shadow-xl hover:scale-105 transition-all text-white">INSCRIBIRME</button>
-              <button onClick={() => setView(AppView.LOGIN)} className="w-full sm:w-auto px-10 py-4 bg-white/5 border border-white/20 rounded-full font-orbitron font-bold text-lg hover:bg-white/10 transition-all text-white">ENTRAR</button>
+            
+            <p className="text-lg sm:text-xl text-slate-300 max-w-xl mx-auto relative z-10">
+              {IS_NEW_YEAR_MODE ? 'Celebramos un nuevo ciclo de éxitos y exclusividad junto a nuestra familia digital.' : 'La familia más exclusiva del entretenimiento y la tramoya digital.'}
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto relative z-10">
+              <button onClick={() => setView(AppView.REGISTER)} className={`w-full sm:w-auto px-10 py-4 ${IS_NEW_YEAR_MODE ? 'bg-gradient-to-r from-amber-600 to-yellow-600 shadow-amber-500/20' : 'bg-gradient-to-r from-space-purple to-space-blue'} rounded-full font-orbitron font-bold text-lg shadow-xl hover:scale-105 transition-all text-white`}>
+                INSCRIBIRME
+              </button>
+              <button onClick={() => setView(AppView.LOGIN)} className="w-full sm:w-auto px-10 py-4 bg-white/5 border border-white/20 rounded-full font-orbitron font-bold text-lg hover:bg-white/10 transition-all text-white">
+                ENTRAR
+              </button>
             </div>
+            
+            {IS_NEW_YEAR_MODE && (
+              <div className="w-full pt-16 relative z-10">
+                <p className="font-cursive text-5xl sm:text-6xl text-amber-400 drop-shadow-[0_2px_10px_rgba(251,191,36,0.6)]">
+                  Feliz Año
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -493,7 +515,7 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
                   ) : (
                     notifications
                       .filter(n => n.userId === currentUser.id)
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // ORDEN DESCENDENTE: Más reciente arriba
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) 
                       .map(n => (
                       <div key={n.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden text-white flex flex-col shadow-xl animate-fade-in group w-full max-w-[320px] mx-auto transition-all hover:bg-white/[0.08]">
                         {n.imageUrl && (
@@ -585,8 +607,8 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
       </main>
 
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20">
-        <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[60%] bg-space-purple blur-[160px] rounded-full animate-pulse"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[100%] h-[60%] bg-space-blue blur-[160px] rounded-full animate-pulse delay-700"></div>
+        <div className={`absolute top-[-20%] left-[-10%] w-[100%] h-[60%] ${IS_NEW_YEAR_MODE ? 'bg-amber-600/40' : 'bg-space-purple'} blur-[160px] rounded-full animate-pulse transition-colors duration-1000`}></div>
+        <div className={`absolute bottom-[-20%] right-[-10%] w-[100%] h-[60%] ${IS_NEW_YEAR_MODE ? 'bg-yellow-500/40' : 'bg-space-blue'} blur-[160px] rounded-full animate-pulse delay-700 transition-colors duration-1000`}></div>
       </div>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
