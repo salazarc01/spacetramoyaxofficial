@@ -15,7 +15,8 @@
     "react-dom": "^19.0.0",
     "lucide-react": "^0.462.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "html5-qrcode": "^2.3.8"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
