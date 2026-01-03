@@ -1,24 +1,13 @@
-
 export enum AppView {
   HOME = 'HOME',
   REGISTER = 'REGISTER',
   LOGIN = 'LOGIN',
-  DASHBOARD = 'DASHBOARD',
   ADMIN_LOGIN = 'ADMIN_LOGIN',
   ADMIN_PANEL = 'ADMIN_PANEL',
-  SPACEBANK = 'SPACEBANK'
-}
-
-export interface Transaction {
-  id: string; // Referencia de 20 números
-  fromId: string;
-  fromName: string;
-  toId: string;
-  toName: string;
-  amount: number;
-  reason: string;
-  date: string;
-  type: 'transfer' | 'bonus' | 'credit';
+  DASHBOARD = 'DASHBOARD',
+  SPACEBANK = 'SPACEBANK',
+  NOTIFICATIONS = 'NOTIFICATIONS',
+  PROFILE = 'PROFILE'
 }
 
 export interface Notification {
@@ -26,10 +15,11 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  amount?: number;
   date: string;
-  isBonus?: boolean;
-  imageUrl?: string;
+  isRead: boolean;
+  type?: 'credit' | 'sent' | 'received';
+  amount?: number;
+  reference?: string;
 }
 
 export interface User {
@@ -43,4 +33,5 @@ export interface User {
   balance: number;
   status: 'pending' | 'active';
   createdAt: string;
+  hasSeenWelcomeCredit?: boolean;
 }
