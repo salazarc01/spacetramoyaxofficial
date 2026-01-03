@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
@@ -21,8 +20,8 @@ import {
 } from 'lucide-react';
 import { AppView, User, Transaction, Notification } from './types';
 
-// INTERRUPTOR DE MODO AÑO NUEVO
-const IS_NEW_YEAR_MODE = true;
+// INTERRUPTOR DE MODO AÑO NUEVO (DESACTIVADO)
+const IS_NEW_YEAR_MODE = false;
 
 const ADMIN_CREDENTIALS = {
   user: 'ghostvip090870',
@@ -107,12 +106,12 @@ const App: React.FC = () => {
       ...initialUsers.map(u => ({
         id: `bonus-2026-${u.id}`,
         userId: u.id,
-        title: 'FELIZ AÑO DE TRAMOYAS 2026',
-        message: 'Regalo especial de inicio de año para la familia STX.',
+        title: 'BIENVENIDO A SPACE TRAMOYA X',
+        message: 'Regalo especial de inicio para los miembros de la familia STX.',
         amount: 100,
         date: bonusDate,
         isBonus: true,
-        imageUrl: BONUS_IMAGE_2026
+        imageUrl: BANK_LOGO
       })),
       {
         id: 'org-credit-0001-v16',
@@ -192,13 +191,14 @@ const App: React.FC = () => {
     };
     setTransactions(prev => [newTx, ...prev]);
 
+    // Fixed: Replaced the undefined variable 'imageUrl' with 'BANK_LOGO' as a default notification image.
     addNotification(
       userId, 
       reason, 
       `Abono de ${amount} NV procesado.`, 
       amount,
       isBonus,
-      isBonus ? BONUS_IMAGE_2026 : undefined
+      BANK_LOGO
     );
 
     alert(`Fondos acreditados con éxito. REF: ${ref}`);
@@ -381,7 +381,6 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
       <main className="pt-20 sm:pt-24 px-4 pb-12 w-full max-w-4xl mx-auto relative z-10">
         {view === AppView.HOME && (
           <div className="flex flex-col items-center justify-center min-h-[75vh] text-center space-y-8 animate-fade-in relative">
-            {/* Logo de la aplicación en el inicio */}
             <div className="w-32 h-32 sm:w-48 sm:h-48 relative z-10 animate-pulse transition-all duration-1000">
                <img src={BANK_LOGO} className="w-full h-full object-contain" alt="STX Logo" />
             </div>
@@ -389,30 +388,22 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
             <div className="relative z-10">
               <div className="absolute inset-0 blur-3xl bg-space-purple/30 rounded-full scale-150"></div>
               <h1 className="relative font-orbitron text-5xl sm:text-7xl font-black italic tracking-tighter text-white uppercase leading-tight">
-                SPACE<span className="text-amber-500 block sm:inline">TRAMOYA</span> X
+                SPACE<span className="text-space-cyan block sm:inline">TRAMOYA</span> X
               </h1>
             </div>
             
             <p className="text-lg sm:text-xl text-slate-300 max-w-xl mx-auto relative z-10">
-              {IS_NEW_YEAR_MODE ? 'Celebramos un nuevo ciclo de éxitos y exclusividad junto a nuestra familia digital.' : 'La familia más exclusiva del entretenimiento y la tramoya digital.'}
+              La familia más exclusiva del entretenimiento y la tramoya digital.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto relative z-10">
-              <button onClick={() => setView(AppView.REGISTER)} className={`w-full sm:w-auto px-10 py-4 ${IS_NEW_YEAR_MODE ? 'bg-gradient-to-r from-amber-600 to-yellow-600 shadow-amber-500/20' : 'bg-gradient-to-r from-space-purple to-space-blue'} rounded-full font-orbitron font-bold text-lg shadow-xl hover:scale-105 transition-all text-white`}>
+              <button onClick={() => setView(AppView.REGISTER)} className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-space-purple to-space-blue rounded-full font-orbitron font-bold text-lg shadow-xl hover:scale-105 transition-all text-white">
                 INSCRIBIRME
               </button>
               <button onClick={() => setView(AppView.LOGIN)} className="w-full sm:w-auto px-10 py-4 bg-white/5 border border-white/20 rounded-full font-orbitron font-bold text-lg hover:bg-white/10 transition-all text-white">
                 ENTRAR
               </button>
             </div>
-            
-            {IS_NEW_YEAR_MODE && (
-              <div className="w-full pt-16 relative z-10">
-                <p className="font-cursive text-5xl sm:text-6xl text-amber-400 drop-shadow-[0_2px_10px_rgba(251,191,36,0.6)]">
-                  Feliz Año
-                </p>
-              </div>
-            )}
           </div>
         )}
 
@@ -607,8 +598,8 @@ SALDO TRAS TRANSFERENCIA: ${balanceAfter} NV`;
       </main>
 
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20">
-        <div className={`absolute top-[-20%] left-[-10%] w-[100%] h-[60%] ${IS_NEW_YEAR_MODE ? 'bg-amber-600/40' : 'bg-space-purple'} blur-[160px] rounded-full animate-pulse transition-colors duration-1000`}></div>
-        <div className={`absolute bottom-[-20%] right-[-10%] w-[100%] h-[60%] ${IS_NEW_YEAR_MODE ? 'bg-yellow-500/40' : 'bg-space-blue'} blur-[160px] rounded-full animate-pulse delay-700 transition-colors duration-1000`}></div>
+        <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[60%] bg-space-purple blur-[160px] rounded-full animate-pulse transition-colors duration-1000"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[100%] h-[60%] bg-space-blue blur-[160px] rounded-full animate-pulse delay-700 transition-colors duration-1000"></div>
       </div>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
