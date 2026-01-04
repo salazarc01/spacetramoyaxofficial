@@ -238,17 +238,12 @@ const App: React.FC = () => {
       if (user) {
         let activeUser = { ...user };
         
-        // El crédito se acredita AUTOMÁTICAMENTE si es la primera vez
         if (!activeUser.hasSeenWelcomeCredit) {
           activeUser.balance += 100;
           activeUser.hasSeenWelcomeCredit = true;
-          
-          // Actualizar en memoria y storage
           const updatedUsers = users.map(u => u.id === activeUser.id ? activeUser : u);
           setUsers(updatedUsers);
           localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
-          
-          // Añadir notificación que aparecerá en el historial (más reciente arriba)
           addNotification(
             activeUser.id, 
             "Crédito STX Recibido", 
@@ -256,7 +251,6 @@ const App: React.FC = () => {
             'credit', 
             100
           );
-          
           setShowCreditModal(true);
           playBeep();
         }
@@ -313,10 +307,8 @@ const App: React.FC = () => {
     const handleRegister = (e: React.FormEvent) => {
       e.preventDefault();
       playHaptic();
-      
       const emailExists = users.find(u => u.email.toLowerCase() === regData.email.toLowerCase());
       if (emailExists) return alert("EL CORREO YA ESTÁ REGISTRADO.");
-
       const newId = (users.length + 1).toString().padStart(4, '0');
       const newUser: User = {
         id: newId,
@@ -331,11 +323,9 @@ const App: React.FC = () => {
         createdAt: new Date().toISOString(),
         hasSeenWelcomeCredit: false
       };
-
       const updatedUsers = [...users, newUser];
       setUsers(updatedUsers);
       localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
-      
       alert(`REGISTRO EXITOSO.\nSU ID DE ACCESO ES: ${newId}\nPOR FAVOR, INICIE SESIÓN.`);
       setView(AppView.LOGIN);
     };
@@ -368,7 +358,6 @@ const App: React.FC = () => {
     const [user, setUser] = useState('');
     const [pass, setPass] = useState('');
     const [code, setCode] = useState('');
-
     const handleAdminLogin = (e: React.FormEvent) => {
       e.preventDefault();
       if (user === ADMIN_CREDENTIALS.user && pass === ADMIN_CREDENTIALS.pass && code === ADMIN_CREDENTIALS.securityCode) {
@@ -377,11 +366,10 @@ const App: React.FC = () => {
         alert("ACCESO DENEGADO.");
       }
     };
-
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 animate-fade-in bg-nova-obsidian">
         <button onClick={() => setView(AppView.HOME)} className="absolute top-12 left-8 w-12 h-12 glass rounded-full flex items-center justify-center text-white"><ArrowLeft size={20} /></button>
-        <div className="w-full max-w-sm space-y-8">
+        <div className="w-full max-sm:px-4 max-w-sm space-y-8">
           <div className="text-center space-y-2">
              <h1 className="text-3xl font-orbitron font-black text-white uppercase tracking-tighter">CENTRO DE <span className="text-nova-gold">CONTROL</span></h1>
              <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.3em]">Acceso Administrativo</p>
@@ -399,7 +387,6 @@ const App: React.FC = () => {
 
   const AdminPanelView = () => {
     const [search, setSearch] = useState('');
-    
     const handleAddBalance = (userId: string) => {
       const amt = prompt("Monto a acreditar:");
       if (!amt || isNaN(parseFloat(amt))) return;
@@ -411,7 +398,6 @@ const App: React.FC = () => {
         alert("Balance actualizado.");
       }
     };
-
     const handleDeleteUser = (userId: string) => {
         if (confirm("¿Eliminar usuario?")) {
             const updated = users.filter(u => u.id !== userId);
@@ -419,7 +405,6 @@ const App: React.FC = () => {
             localStorage.setItem(DB_KEY, JSON.stringify(updated));
         }
     };
-
     return (
       <div className="min-h-screen bg-nova-obsidian text-white p-8 space-y-8 animate-fade-in overflow-y-auto pb-12">
         <div className="flex justify-between items-center">
@@ -429,9 +414,7 @@ const App: React.FC = () => {
           </div>
           <button onClick={() => setView(AppView.HOME)} className="p-4 glass rounded-2xl text-nova-crimson"><LogOut size={20} /></button>
         </div>
-
         <input value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white text-xs outline-none focus:border-nova-gold/40" placeholder="Buscar por ID, Nombre o Email..." />
-
         <div className="space-y-4">
           {users.filter(u => u.id.includes(search) || u.firstName.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())).map(u => (
             <div key={u.id} className="glass p-6 rounded-3xl border-white/5 flex items-center justify-between">
@@ -454,30 +437,20 @@ const App: React.FC = () => {
 
   const CreditModal = () => {
     if (!currentUser) return null;
-
     return (
       <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 glass backdrop-blur-2xl animate-fade-in">
         <div className="max-w-md w-full bg-[#0a0a0f] border-2 border-white rounded-[40px] p-8 shadow-[0_0_50px_rgba(255,255,255,0.1)] relative overflow-hidden flex flex-col">
-          <button onClick={() => setShowCreditModal(false)} className="absolute top-6 right-6 text-white/20 hover:text-white transition-colors z-10">
-            <X size={24} />
-          </button>
-          
+          <button onClick={() => setShowCreditModal(false)} className="absolute top-6 right-6 text-white/20 hover:text-white transition-colors z-10"><X size={24} /></button>
           <div className="space-y-6 flex flex-col">
             <div className="w-full border-4 border-white rounded-[32px] overflow-hidden shadow-2xl bg-black">
-              {/* Se eliminó aspect-square para mostrarla original */}
               <img src={CREDIT_IMG} className="w-full h-auto object-contain" alt="Crédito STX" />
             </div>
-            
             <div className="space-y-4">
               <div className="flex flex-col">
                 <h2 className="text-2xl font-orbitron font-black text-white uppercase italic tracking-tighter leading-none">Credito STX</h2>
                 <p className="text-nova-gold font-black text-[10px] uppercase tracking-widest mt-1">FELIZ AÑO DE TRAMOYAS 2026</p>
               </div>
-              
-              <p className="text-[10px] text-nova-titanium/80 leading-relaxed font-medium uppercase tracking-tight">
-                Incentivo espacial para iniciar el ciclo 2026 con el pie derecho en la red Tramoya X. Este crédito ya ha sido sumado automáticamente a su balance.
-              </p>
-              
+              <p className="text-[10px] text-nova-titanium/80 leading-relaxed font-medium uppercase tracking-tight">Incentivo espacial para iniciar el ciclo 2026 con el pie derecho en la red Tramoya X. Este crédito ya ha sido sumado automáticamente a su balance.</p>
               <div className="flex justify-between items-end border-t border-white/10 pt-4">
                 <div className="flex flex-col">
                   <span className="text-[8px] text-nova-gold font-bold uppercase tracking-widest">Monto Acreditado</span>
@@ -489,13 +462,7 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            <button 
-              onClick={() => setShowCreditModal(false)}
-              className="w-full py-5 glass border-white/10 text-white/40 font-orbitron font-black text-sm uppercase rounded-2xl tracking-widest"
-            >
-              Cerrar Anuncio
-            </button>
+            <button onClick={() => setShowCreditModal(false)} className="w-full py-5 glass border-white/10 text-white/40 font-orbitron font-black text-sm uppercase rounded-2xl tracking-widest">Cerrar Anuncio</button>
           </div>
         </div>
       </div>
@@ -511,35 +478,18 @@ const App: React.FC = () => {
 
     const recipient = useMemo(() => users.find(u => u.id === destId.trim()), [destId, users]);
     const balanceAfter = currentUser ? currentUser.balance - (parseFloat(amount) || 0) : 0;
-
-    const qrData = useMemo(() => JSON.stringify({ 
-      id: currentUser?.id, 
-      firstName: currentUser?.firstName, 
-      lastName: currentUser?.lastName, 
-      acc: getAccountNumber(currentUser?.id || '') 
-    }), [currentUser]);
+    const qrData = useMemo(() => JSON.stringify({ id: currentUser?.id, firstName: currentUser?.firstName, lastName: currentUser?.lastName, acc: getAccountNumber(currentUser?.id || '') }), [currentUser]);
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
 
     useEffect(() => {
       if (tab === 'scan') {
         const scanner = new Html5Qrcode("reader");
-        scanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            try {
-              const data = JSON.parse(decodedText);
-              if (data.id) {
-                playBeep();
-                playHaptic();
-                setDestId(data.id);
-                setTab('transfer');
-                scanner.stop();
-              }
-            } catch (e) { console.debug("Not a valid STX QR"); }
-          },
-          undefined
-        ).catch(err => console.error("Camera error:", err));
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => {
+          try {
+            const data = JSON.parse(decodedText);
+            if (data.id) { playBeep(); playHaptic(); setDestId(data.id); setTab('transfer'); scanner.stop(); }
+          } catch (e) { console.debug("Not a valid STX QR"); }
+        }, undefined).catch(err => console.error("Camera error:", err));
         return () => { scanner.isScanning && scanner.stop(); };
       }
     }, [tab]);
@@ -548,30 +498,13 @@ const App: React.FC = () => {
       if (!destId || !amount || !motivo) return alert("Complete todos los campos.");
       if (balanceAfter < 0) return alert("Saldo insuficiente.");
       playHaptic();
-      
       const ref = generateReference();
       const amtNum = parseFloat(amount);
-
-      addNotification(
-        currentUser!.id, 
-        "Transferencia Enviada", 
-        `Has enviado ${amtNum} NV a ID ${destId}. Protocolo iniciado via Gmail.`, 
-        'sent', 
-        amtNum
-      );
-
+      addNotification(currentUser!.id, "Transferencia Enviada", `Has enviado ${amtNum} NV a ID ${destId}. Protocolo iniciado via Gmail.`, 'sent', amtNum);
       if (recipient) {
-         addNotification(
-           recipient.id,
-           "Pago Recibido",
-           `Has recibido ${amtNum} NV de ${currentUser?.firstName} ${currentUser?.lastName}.`,
-           'received',
-           amtNum
-         );
+         addNotification(recipient.id, "Pago Recibido", `Has recibido ${amtNum} NV de ${currentUser?.firstName} ${currentUser?.lastName}.`, 'received', amtNum);
       }
-      
       const body = `Trasferencia STX\n\nDe: ${currentUser?.firstName} ${currentUser?.lastName}\nCodigo de la persona que trasfiere: ${currentUser?.id}\nMonto a trasferir: ${amount} NV\nMonto disponible: ${currentUser?.balance.toLocaleString()} NV\nMonto que queda despues de la trasferencia: ${balanceAfter.toLocaleString()} NV\nMotivo: ${motivo}\nReferencia: ${ref}`;
-      
       window.location.href = `mailto:${SOPORTE_EMAIL}?subject=Trasferencia STX&body=${encodeURIComponent(body)}`;
       setDestId(''); setAmount(''); setMotivo('');
     };
@@ -591,13 +524,11 @@ const App: React.FC = () => {
             <img src={BANK_LOGO} className="w-8 h-8 object-contain" alt="STX" />
           </div>
         </div>
-
         <div className="flex p-1 glass rounded-2xl border-white/5">
           <button onClick={() => setTab('card')} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${tab === 'card' ? 'bg-white text-nova-obsidian' : 'text-nova-titanium/50'}`}>Mi QR</button>
           <button onClick={() => setTab('scan')} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${tab === 'scan' ? 'bg-white text-nova-obsidian' : 'text-nova-titanium/50'}`}>Escanear</button>
           <button onClick={() => setTab('transfer')} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${tab === 'transfer' ? 'bg-white text-nova-obsidian' : 'text-nova-titanium/50'}`}>Transferir</button>
         </div>
-
         {tab === 'card' && (
           <div className="flex flex-col items-center gap-6 animate-fade-in">
              <div className="p-8 glass rounded-[40px] border-nova-gold/20 shadow-2xl bg-white/5">
@@ -606,7 +537,6 @@ const App: React.FC = () => {
              <p className="text-[10px] text-nova-titanium uppercase font-bold tracking-[0.3em]">Recibir Nóvares</p>
           </div>
         )}
-
         {tab === 'scan' && (
           <div className="flex flex-col items-center gap-8 animate-fade-in">
              <div className="w-full aspect-square glass rounded-[40px] border-nova-gold/20 flex flex-col items-center justify-center relative overflow-hidden group">
@@ -615,15 +545,46 @@ const App: React.FC = () => {
              </div>
           </div>
         )}
-
         {tab === 'transfer' && (
           <div className="glass p-8 rounded-[32px] space-y-5 animate-fade-in shadow-xl border-white/5">
-             <div className="space-y-1">
-               <input value={destId} onChange={e => setDestId(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-mono text-sm outline-none focus:border-nova-gold/50" placeholder="ID Destinatario" />
-               <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-orbitron text-2xl outline-none focus:border-nova-gold/50" placeholder="0.00" />
-               <input value={motivo} onChange={e => setMotivo(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white text-xs outline-none focus:border-nova-gold/50" placeholder="Motivo" />
+             <div className="space-y-1 relative">
+               <label className="text-[10px] uppercase text-nova-gold/60 font-black tracking-widest ml-1 mb-1 block">ID Destinatario</label>
+               <input 
+                 value={destId} 
+                 onChange={e => setDestId(e.target.value)} 
+                 className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-mono text-sm outline-none focus:border-nova-gold/50 transition-all" 
+                 placeholder="Ej: 0002" 
+               />
+               {/* Guía en tiempo real del nombre del destinatario */}
+               {destId.trim() && (
+                 <div className="mt-2 flex items-center gap-2 px-1 animate-fade-in">
+                    {recipient ? (
+                      <div className="flex items-center gap-1.5 py-1 px-3 bg-nova-emerald/10 border border-nova-emerald/20 rounded-full">
+                         <CircleCheck size={10} className="text-nova-emerald" />
+                         <span className="text-[10px] font-black text-nova-emerald uppercase tracking-tighter">
+                           Destinatario: {recipient.firstName} {recipient.lastName}
+                         </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 py-1 px-3 bg-nova-crimson/10 border border-nova-crimson/20 rounded-full">
+                         <X size={10} className="text-nova-crimson" />
+                         <span className="text-[10px] font-black text-nova-crimson/60 uppercase tracking-tighter">
+                           Usuario no encontrado
+                         </span>
+                      </div>
+                    )}
+                 </div>
+               )}
              </div>
-             <button onClick={handleTransfer} className="w-full py-4 bg-nova-gold text-nova-obsidian rounded-xl font-orbitron font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2">
+             <div className="space-y-1">
+               <label className="text-[10px] uppercase text-nova-gold/60 font-black tracking-widest ml-1 mb-1 block">Monto (NV)</label>
+               <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-orbitron text-2xl outline-none focus:border-nova-gold/50" placeholder="0.00" />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[10px] uppercase text-nova-gold/60 font-black tracking-widest ml-1 mb-1 block">Motivo</label>
+               <input value={motivo} onChange={e => setMotivo(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white text-xs outline-none focus:border-nova-gold/50" placeholder="Referencia corta" />
+             </div>
+             <button onClick={handleTransfer} className="w-full py-4 bg-nova-gold text-nova-obsidian rounded-xl font-orbitron font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 mt-4">
                <Send size={16} /> Confirmar Protocolo
              </button>
           </div>
@@ -639,7 +600,6 @@ const App: React.FC = () => {
           <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.3em]">Avisos y Actividad Reciente</p>
         </div>
         <div className="space-y-4">
-          {/* Mostramos las notificaciones filtradas para el usuario actual. addNotification ya las inserta al inicio. */}
           {notifications.filter(n => n.userId === currentUser?.id).map((notif) => (
             <div key={notif.id} className="glass p-6 rounded-[32px] border-white/5 space-y-3 relative active:scale-95 transition-transform overflow-hidden">
                 <div className={`absolute top-0 right-0 p-4 opacity-10 ${notif.type === 'credit' ? 'text-nova-gold' : notif.type === 'sent' ? 'text-nova-crimson' : 'text-nova-emerald'}`}>
@@ -685,7 +645,6 @@ const App: React.FC = () => {
         </div>
         <div className="px-3 py-1 glass rounded-full"><span className="text-[8px] font-black text-nova-gold uppercase tracking-[0.2em]">ID {currentUser?.id}</span></div>
       </div>
-
       <div className="glass p-8 rounded-[40px] border-nova-gold/10 space-y-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-5"><Sparkles size={40} className="text-nova-gold" /></div>
         <div className="flex items-center gap-4">
@@ -700,7 +659,6 @@ const App: React.FC = () => {
             <span className="text-[10px] font-black uppercase tracking-widest">Ver Monedero</span>
         </button>
       </div>
-      
       <div className="space-y-4">
         <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] ml-2">Movimientos Recientes</h3>
         {notifications.filter(n => n.userId === currentUser?.id).slice(0, 3).map(n => (
@@ -733,7 +691,6 @@ const App: React.FC = () => {
       setCurrentUser(null);
       setView(AppView.HOME);
     };
-
     return (
       <div className="pb-32 pt-24 px-6 space-y-8 animate-fade-in max-w-lg mx-auto">
         <div className="flex flex-col items-center text-center space-y-4">
@@ -746,7 +703,6 @@ const App: React.FC = () => {
             <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.3em]">{currentUser?.email}</p>
           </div>
         </div>
-
         <div className="glass rounded-[32px] overflow-hidden border-white/5">
           {[
             { label: 'País', value: currentUser?.country, icon: <Info size={16} /> },
@@ -766,7 +722,6 @@ const App: React.FC = () => {
             </div>
           ))}
         </div>
-
         <div className="space-y-3">
           <button className="w-full py-5 bg-white/5 rounded-2xl flex items-center justify-between px-6 border border-white/5 group active:scale-95 transition-all">
             <div className="flex items-center gap-4">
@@ -775,7 +730,6 @@ const App: React.FC = () => {
             </div>
             <ChevronRight size={14} className="text-white/10 group-hover:text-nova-gold transition-colors" />
           </button>
-          
           <button onClick={handleLogout} className="w-full py-5 bg-nova-crimson/10 rounded-2xl flex items-center justify-center gap-3 text-nova-crimson border border-nova-crimson/20 active:scale-95 transition-all mt-4">
             <LogOut size={18} />
             <span className="text-[10px] font-black uppercase tracking-widest">Finalizar Protocolo</span>
@@ -789,13 +743,8 @@ const App: React.FC = () => {
     <header className="fixed top-0 left-0 right-0 z-[100] bg-nova-obsidian/95 border-b border-white/5 px-6 pt-6 pb-4">
       <div className="max-w-lg mx-auto flex justify-between items-center">
         <div className="flex flex-col">
-          <h2 className="font-orbitron font-black text-xl italic tracking-tighter text-white uppercase leading-none">
-            SPACE<span className="text-nova-gold">TRAMOYA</span>
-          </h2>
-          <div className="flex items-center gap-1 mt-1 opacity-60">
-              <RealTimeClock />
-              <span className="text-[7px] text-white/50 font-bold uppercase tracking-widest ml-1">STX_SECURE</span>
-          </div>
+          <h2 className="font-orbitron font-black text-xl italic tracking-tighter text-white uppercase leading-none">SPACE<span className="text-nova-gold">TRAMOYA</span></h2>
+          <div className="flex items-center gap-1 mt-1 opacity-60"><RealTimeClock /><span className="text-[7px] text-white/50 font-bold uppercase tracking-widest ml-1">STX_SECURE</span></div>
         </div>
       </div>
     </header>
@@ -804,24 +753,10 @@ const App: React.FC = () => {
   const BottomDockComp = () => (
     <nav className="fixed bottom-0 left-0 right-0 z-[110] px-6 pb-6 pt-4 glass border-t border-white/5 rounded-t-[36px]">
       <div className="max-w-md mx-auto flex justify-between items-center px-4">
-        <button onClick={() => { playHaptic(); setView(AppView.DASHBOARD); setActiveTab(AppView.DASHBOARD); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.DASHBOARD ? 'text-nova-gold' : 'text-nova-titanium/30'}`}>
-          <LayoutDashboard size={20} /><span className="text-[7px] font-black uppercase tracking-[0.2em]">Inicio</span>
-        </button>
-        <button onClick={() => { playHaptic(); setView(AppView.SPACEBANK); setActiveTab(AppView.SPACEBANK); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.SPACEBANK ? 'text-nova-gold' : 'text-nova-titanium/30'}`}>
-          <CreditCard size={20} /><span className="text-[7px] font-black uppercase tracking-[0.2em]">Bank</span>
-        </button>
-        <button onClick={() => { playHaptic(); setView(AppView.NOTIFICATIONS); setActiveTab(AppView.NOTIFICATIONS); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.NOTIFICATIONS ? 'text-nova-gold' : 'text-nova-titanium/30'}`}>
-          <div className="relative">
-            <Bell size={20} />
-            {notifications.filter(n => n.userId === currentUser?.id && !n.isRead).length > 0 && (
-              <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-nova-crimson rounded-full"></div>
-            )}
-          </div>
-          <span className="text-[7px] font-black uppercase tracking-[0.2em]">Avisos</span>
-        </button>
-        <button onClick={() => { playHaptic(); setView(AppView.PROFILE); setActiveTab(AppView.PROFILE); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.PROFILE ? 'text-nova-gold' : 'text-nova-titanium/30'}`}>
-          <UserIcon size={20} /><span className="text-[7px] font-black uppercase tracking-[0.2em]">Perfil</span>
-        </button>
+        <button onClick={() => { playHaptic(); setView(AppView.DASHBOARD); setActiveTab(AppView.DASHBOARD); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.DASHBOARD ? 'text-nova-gold' : 'text-nova-titanium/30'}`}><LayoutDashboard size={20} /><span className="text-[7px] font-black uppercase tracking-[0.2em]">Inicio</span></button>
+        <button onClick={() => { playHaptic(); setView(AppView.SPACEBANK); setActiveTab(AppView.SPACEBANK); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.SPACEBANK ? 'text-nova-gold' : 'text-nova-titanium/30'}`}><CreditCard size={20} /><span className="text-[7px] font-black uppercase tracking-[0.2em]">Bank</span></button>
+        <button onClick={() => { playHaptic(); setView(AppView.NOTIFICATIONS); setActiveTab(AppView.NOTIFICATIONS); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.NOTIFICATIONS ? 'text-nova-gold' : 'text-nova-titanium/30'}`}><div className="relative"><Bell size={20} />{notifications.filter(n => n.userId === currentUser?.id && !n.isRead).length > 0 && (<div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-nova-crimson rounded-full"></div>)}</div><span className="text-[7px] font-black uppercase tracking-[0.2em]">Avisos</span></button>
+        <button onClick={() => { playHaptic(); setView(AppView.PROFILE); setActiveTab(AppView.PROFILE); }} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === AppView.PROFILE ? 'text-nova-gold' : 'text-nova-titanium/30'}`}><UserIcon size={20} /><span className="text-[7px] font-black uppercase tracking-[0.2em]">Perfil</span></button>
       </div>
     </nav>
   );
@@ -834,29 +769,7 @@ const App: React.FC = () => {
       {view === AppView.REGISTER && <RegisterView />}
       {view === AppView.ADMIN_LOGIN && <AdminLoginView />}
       {view === AppView.ADMIN_PANEL && <AdminPanelView />}
-
-      {(view === AppView.DASHBOARD || view === AppView.SPACEBANK || view === AppView.NOTIFICATIONS || view === AppView.PROFILE) && (
-        <>
-          <HeaderComp />
-          <main className="animate-fade-in">
-            {view === AppView.DASHBOARD && <DashboardView />}
-            {view === AppView.SPACEBANK && <SpaceBankView />}
-            {view === AppView.NOTIFICATIONS && <NotificationsView />}
-            {view === AppView.PROFILE && <ProfileView />}
-          </main>
-          <BottomDockComp />
-        </>
-      )}
-      <style>{`
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        .animate-float { animation: float 3s ease-in-out infinite; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .gold-shadow { box-shadow: 0 0 20px rgba(234, 179, 8, 0.1); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        @keyframes scan { 0% { top: 0; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
-        .animate-scan { animation: scan 3s linear infinite; }
-      `}</style>
+      {(view === AppView.DASHBOARD || view === AppView.SPACEBANK || view === AppView.NOTIFICATIONS || view === AppView.PROFILE) && (<><HeaderComp /><main className="animate-fade-in">{view === AppView.DASHBOARD && <DashboardView />}{view === AppView.SPACEBANK && <SpaceBankView />}{view === AppView.NOTIFICATIONS && <NotificationsView />}{view === AppView.PROFILE && <ProfileView />}</main><BottomDockComp /></>)}
     </div>
   );
 };
