@@ -1,4 +1,3 @@
-
 export enum AppView {
   HOME = 'HOME',
   REGISTER = 'REGISTER',
@@ -18,10 +17,11 @@ export interface Notification {
   message: string;
   date: string;
   isRead: boolean;
-  type?: 'credit' | 'sent' | 'received';
-  amount?: number;
-  reference?: string;
-  imageUrl?: string;
+  type: 'credit' | 'sent' | 'received';
+  amount: number;
+  reference: string;
+  targetUserId?: string;
+  senderName?: string;
 }
 
 export interface User {
@@ -33,8 +33,8 @@ export interface User {
   email: string;
   password?: string;
   balance: number;
-  status: 'pending' | 'active';
+  status: 'pending' | 'active' | 'blocked';
   createdAt: string;
   hasSeenWelcomeCredit?: boolean;
-  lastTaxMonth?: string; // Formato "MM-YYYY"
+  lastTaxMonth?: string;
 }

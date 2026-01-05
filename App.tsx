@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ArrowLeft, 
   User as UserIcon, 
@@ -11,34 +11,32 @@ import {
   ChevronRight, 
   Info, 
   Smartphone,
-  Settings,
   Send,
   Clock,
   TrendingUp,
   TrendingDown,
   Cpu,
-  Globe,
-  Newspaper,
-  ChevronDown,
-  ChevronUp,
-  QrCode,
-  Scan,
-  Calendar,
   ShieldCheck,
-  Flag
+  Flag,
+  Calendar,
+  AlertTriangle,
+  Lock,
+  Eye,
+  Settings,
+  ShieldAlert,
+  Search,
+  Users
 } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
 import { AppView, User, Notification } from './types';
 
 const BANK_LOGO = "https://i.postimg.cc/kD3Pn8C6/Photoroom-20251229-195028.png";
-const CREDIT_IMG = "https://i.postimg.cc/BvmKfFtJ/20260102-170520-0000.png";
 const SOPORTE_EMAIL = "soportespacetramoyax@gmail.com";
 
 const INITIAL_USERS: User[] = [
-  { id: '0001', firstName: 'Luis', lastName: 'Alejandro', country: 'Venezuela', phone: '584123151217', email: 'luissalazarcabrera85@gmail.com', password: 'v9451679', balance: 100, status: 'active', createdAt: '2025-01-04T12:00:00Z', hasSeenWelcomeCredit: false }
+  { id: '0001', firstName: 'Luis', lastName: 'Alejandro', country: 'Venezuela', phone: '584123151217', email: 'luissalazarcabrera85@gmail.com', password: 'v9451679', balance: 100, status: 'active', createdAt: '2025-01-04T12:00:00Z', hasSeenWelcomeCredit: false },
+  { id: '0002', firstName: 'Miss', lastName: 'Slam Virtual', country: 'El Salvador', phone: '50375431212', email: 'missslamvirtual@tramoyax.cdlt', password: 'ms0121', balance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false },
+  { id: '0003', firstName: 'Alex', lastName: 'Duarte', country: 'Honduras', phone: '89887690', email: 'alex.504@tramoyax.cdlt', password: 'copito.123', balance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false }
 ];
-
-const ADMIN_CREDENTIALS = { user: 'admin090870', pass: 'v9451679', securityCode: '090870' };
 
 const RealTimeClock: React.FC<{ showDate?: boolean }> = ({ showDate = false }) => {
   const [time, setTime] = useState(new Date());
@@ -57,15 +55,21 @@ const RealTimeClock: React.FC<{ showDate?: boolean }> = ({ showDate = false }) =
   );
 };
 
+const VerificationBadge = () => (
+  <div className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gradient-to-tr from-nova-gold to-yellow-200 ml-2 shadow-[0_0_10px_rgba(234,179,8,0.5)]">
+    <ShieldCheck size={10} className="text-black stroke-[3]" />
+  </div>
+);
+
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeTab, setActiveTab] = useState<AppView>(AppView.DASHBOARD);
-  const qrReaderRef = useRef<Html5Qrcode | null>(null);
 
-  const DB_KEY = 'STX_DB_MASTER_V17';
+  const DB_KEY = 'STX_DB_MASTER_V18';
+  const NOTIF_KEY = 'STX_NOTIFS_V2';
 
   useEffect(() => {
     const savedData = localStorage.getItem(DB_KEY);
@@ -73,6 +77,12 @@ const App: React.FC = () => {
     if (savedData) { 
       try { 
         dbUsers = JSON.parse(savedData); 
+        const userMap = new Map();
+        dbUsers.forEach(u => userMap.set(u.id, u));
+        INITIAL_USERS.forEach(u => {
+          if (!userMap.has(u.id)) userMap.set(u.id, u);
+        });
+        dbUsers = Array.from(userMap.values());
         setUsers(dbUsers); 
       } catch (e) { 
         setUsers(INITIAL_USERS); 
@@ -81,7 +91,7 @@ const App: React.FC = () => {
       localStorage.setItem(DB_KEY, JSON.stringify(INITIAL_USERS)); 
     }
     
-    const savedNotifs = localStorage.getItem('STX_NOTIFS_V1');
+    const savedNotifs = localStorage.getItem(NOTIF_KEY);
     if (savedNotifs) setNotifications(JSON.parse(savedNotifs));
     
     const sessionKey = localStorage.getItem('STX_SESSION_KEY');
@@ -96,7 +106,12 @@ const App: React.FC = () => {
   }, []);
 
   const playHaptic = () => { if (window.navigator.vibrate) window.navigator.vibrate(15); };
-  const generateReference = () => { let ref = ''; for(let i = 0; i < 20; i++) ref += Math.floor(Math.random() * 10); return ref; };
+  
+  const generateReference = () => { 
+    let ref = ''; 
+    for(let i = 0; i < 20; i++) ref += Math.floor(Math.random() * 10).toString(); 
+    return ref; 
+  };
   
   const updateUserData = (updatedUser: User) => {
     setUsers(prev => {
@@ -106,22 +121,48 @@ const App: React.FC = () => {
     });
   };
 
-  const addNotification = (userId: string, title: string, message: string, type: 'credit'|'sent'|'received', amount?: number) => {
+  const addTransferNotification = (senderId: string, receiverId: string, amount: number, ref: string, concept: string) => {
     const now = new Date();
-    const newNotif: Notification = {
-      id: Math.random().toString(36).substr(2, 9), userId, title, message,
-      date: `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-      isRead: false, type, amount, reference: generateReference()
+    const dateStr = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    
+    const senderUser = users.find(u => u.id === senderId);
+    const receiverUser = users.find(u => u.id === receiverId);
+
+    const senderNotif: Notification = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: senderId,
+      title: "Pago Rápido Enviado",
+      message: `Transferencia de ${amount} NV enviada a ${receiverUser?.firstName} (${receiverId}).`,
+      date: dateStr,
+      isRead: false,
+      type: 'sent',
+      amount,
+      reference: ref,
+      targetUserId: receiverId
     };
+
+    const receiverNotif: Notification = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: receiverId,
+      title: "Pago Rápido Recibido",
+      message: `Has recibido ${amount} NV en tu monedero de ${senderUser?.firstName} (${senderId}).`,
+      date: dateStr,
+      isRead: false,
+      type: 'received',
+      amount,
+      reference: ref,
+      senderName: senderUser ? `${senderUser.firstName} ${senderUser.lastName}` : 'Usuario SpaceTramoya'
+    };
+
     setNotifications(prev => {
-      const updated = [newNotif, ...prev];
-      localStorage.setItem('STX_NOTIFS_V1', JSON.stringify(updated));
+      const updated = [senderNotif, receiverNotif, ...prev];
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(updated));
       return updated;
     });
   };
 
   const LandingPage = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 animate-fade-in bg-nova-obsidian overflow-y-auto">
+    <div className="flex flex-col items-center justify-center min-h-screen p-8 animate-fade-in bg-nova-obsidian">
       <div className="relative z-10 space-y-12 w-full max-w-sm">
         <div className="space-y-4 animate-float text-center">
           <div className="w-28 h-28 mx-auto bg-white/5 p-4 rounded-[2rem] glass flex items-center justify-center shadow-2xl border border-nova-gold/20">
@@ -130,248 +171,420 @@ const App: React.FC = () => {
           <div className="flex flex-col items-center">
             <h1 className="font-orbitron font-black text-4xl tracking-tighter text-white uppercase italic leading-none">SPACE<span className="text-nova-gold">TRAMOYA</span> X</h1>
             <div className="h-0.5 w-32 bg-gradient-to-r from-transparent via-nova-gold to-transparent mt-3"></div>
-            <p className="text-[10px] text-nova-gold/40 font-bold uppercase tracking-[0.4em] mt-3 text-center">Sistema Bancario Élite</p>
+            <p className="text-[10px] text-nova-gold/40 font-bold uppercase tracking-[0.4em] mt-3 text-center">Protocolo Ultra-Nova</p>
           </div>
         </div>
-
         <div className="grid gap-5">
-          <button onClick={() => { playHaptic(); setView(AppView.LOGIN); }} className="w-full py-5 bg-white text-nova-obsidian font-orbitron font-black text-sm rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 transition-all uppercase tracking-widest">Iniciar Sesión</button>
+          <button onClick={() => { playHaptic(); setView(AppView.LOGIN); }} className="w-full py-5 bg-white text-nova-obsidian font-orbitron font-black text-sm rounded-2xl shadow-xl active:scale-95 transition-all uppercase tracking-widest">Iniciar Sesión</button>
           <button onClick={() => { playHaptic(); setView(AppView.REGISTER); }} className="w-full py-5 glass text-white font-orbitron font-bold text-sm rounded-2xl border-white/10 active:scale-95 transition-all uppercase tracking-widest">Registrarse</button>
-        </div>
-
-        <div className="pt-10 flex flex-col items-center gap-2 opacity-30">
-          <ShieldCheck size={20} className="text-nova-gold" />
-          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white">Ghost Protocol Secured</p>
         </div>
       </div>
     </div>
   );
 
+  const DashboardView = () => (
+    <div className="pb-32 pt-36 px-6 space-y-8 animate-fade-in max-w-lg mx-auto">
+      <div className="flex justify-between items-start">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-orbitron font-black text-white italic leading-none uppercase tracking-tighter flex items-center">
+            HOLA, <span className="text-nova-gold ml-2 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)]">{currentUser?.firstName}</span>
+            {currentUser?.id === '0001' && <VerificationBadge />}
+          </h1>
+          <RealTimeClock showDate />
+        </div>
+        <div className="px-3 py-1 glass rounded-full border-nova-gold/20">
+          <span className="text-[8px] font-black text-nova-gold uppercase tracking-[0.2em]">STX ID {currentUser?.id}</span>
+        </div>
+      </div>
+      
+      <div className="glass p-8 rounded-[3rem] border-nova-gold/10 space-y-6 shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-5 opacity-5 group-hover:rotate-12 transition-transform duration-500"><Sparkles size={50} className="text-nova-gold" /></div>
+        <div className="flex items-center gap-5">
+          <div className="w-16 h-16 bg-nova-gold/10 rounded-[1.5rem] flex items-center justify-center text-nova-gold shadow-inner border border-nova-gold/5"><LayoutDashboard size={32} /></div>
+          <div><h3 className="text-[10px] font-bold text-nova-titanium/50 uppercase tracking-[0.4em] mb-2 leading-none">DISPONIBLE</h3><p className="text-4xl font-orbitron font-black text-white leading-none tracking-tight">{currentUser?.balance.toLocaleString()} <span className="text-sm text-nova-gold">NV</span></p></div>
+        </div>
+        <button onClick={() => { playHaptic(); setView(AppView.SPACEBANK); setActiveTab(AppView.SPACEBANK); }} className="w-full py-5 bg-white text-nova-obsidian rounded-2xl flex items-center justify-center gap-3 font-orbitron font-black shadow-xl active:scale-95 transition-all"><CreditCard size={18} /><span className="text-[10px] uppercase tracking-widest">Gestionar SpaceBank</span></button>
+      </div>
+
+      <div className="space-y-5">
+        <div className="flex items-center justify-between px-2"><h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Operaciones Recientes</h3><ChevronRight size={14} className="text-white/20" /></div>
+        {notifications.filter(n => n.userId === currentUser?.id).length === 0 ? (
+          <div className="glass p-10 rounded-[2rem] text-center opacity-30 italic"><p className="text-[10px] uppercase font-black tracking-widest leading-relaxed">No hay movimientos registrados en el historial Ghost.</p></div>
+        ) : (
+          notifications.filter(n => n.userId === currentUser?.id).slice(0, 3).map(n => (
+            <div key={n.id} className="glass p-6 rounded-[2rem] flex items-center justify-between border-white/5 hover:border-nova-gold/10 transition-colors">
+               <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${n.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
+                    {n.type === 'sent' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                  </div>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[11px] font-bold text-white uppercase tracking-tight italic">{n.title}</span>
+                    <span className="text-[8px] text-nova-titanium/40 mt-1 uppercase font-black">{n.date.split(' ')[0]}</span>
+                  </div>
+               </div>
+               <div className="text-right">
+                 <span className={`text-sm font-orbitron font-bold ${n.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                   {n.type === 'sent' ? '-' : '+'}{n.amount.toLocaleString()} NV
+                 </span>
+               </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
   const SpaceBankView = () => {
-    const [tab, setTab] = useState<'card' | 'transfer' | 'scan' | 'mycard'>('mycard');
+    const [tab, setTab] = useState<'mycard' | 'transfer'>('mycard');
     const [destId, setDestId] = useState('');
-    const [destName, setDestName] = useState('');
-    const [destAccount, setDestAccount] = useState('');
     const [amount, setAmount] = useState('');
     const [motivo, setMotivo] = useState('');
-    const [isQuickPay, setIsQuickPay] = useState(false);
+    const [showWarning, setShowWarning] = useState(false);
 
-    const startScanner = async () => {
-      try {
-        if (qrReaderRef.current) await qrReaderRef.current.stop();
-        qrReaderRef.current = new Html5Qrcode("reader");
-        await qrReaderRef.current.start(
-          { facingMode: "environment" },
-          { fps: 15, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            try {
-              const data = JSON.parse(decodedText);
-              if (data.id && data.account) {
-                playHaptic();
-                setDestId(data.id);
-                setDestName(data.name);
-                setDestAccount(data.account);
-                setIsQuickPay(true);
-                setTab('transfer');
-                stopScanner();
-              }
-            } catch (e) { console.warn("QR Detectado pero no compatible con el protocolo STX"); }
-          },
-          () => {}
-        );
-      } catch (err) { console.error("Error al iniciar cámara:", err); }
+    const targetUser = useMemo(() => {
+      if (destId.length < 3) return null;
+      return users.find(u => u.id === destId.trim());
+    }, [destId, users]);
+
+    const remainingBalance = useMemo(() => {
+      const amt = parseFloat(amount) || 0;
+      return (currentUser?.balance || 0) - amt;
+    }, [amount, currentUser]);
+
+    const handleStartTransfer = () => {
+      if (!targetUser) return alert("Error: ID de destinatario no válido.");
+      if (!amount || parseFloat(amount) <= 0) return alert("Error: Ingrese un monto válido.");
+      if (remainingBalance < 0) return alert("Error: Saldo insuficiente.");
+      if (!motivo) return alert("Error: Ingrese un concepto.");
+      setShowWarning(true);
     };
 
-    const stopScanner = () => {
-      if (qrReaderRef.current) {
-        qrReaderRef.current.stop().then(() => { qrReaderRef.current = null; }).catch(() => {});
-      }
-    };
-
-    useEffect(() => {
-      if (tab === 'scan') startScanner();
-      else stopScanner();
-      return () => stopScanner();
-    }, [tab]);
-
-    const handleTransfer = () => {
-      if (!destId || !amount || !motivo) return alert("Por favor complete todos los datos de la transferencia.");
+    const processFinalAction = () => {
       const amtNum = parseFloat(amount);
-      if (amtNum > (currentUser?.balance || 0)) return alert("Saldo insuficiente para procesar esta operación.");
-      
       const ref = generateReference();
-      addNotification(currentUser!.id, "Pago Rápido Enviado", `Has enviado ${amtNum} NV a ${destName || destId}.`, 'sent', amtNum);
-      
-      const subject = `Pago Rapido STX - Referencia: ${ref}`;
-      const body = `SISTEMA DE PAGO RAPIDO STX\n\nEMISOR: ${currentUser?.firstName} ${currentUser?.lastName}\nID EMISOR: ${currentUser?.id}\n\nRECEPTOR: ${destName}\nID RECEPTOR: ${destId}\nCUENTA RECEPTOR: ${destAccount}\n\nMONTO: ${amtNum} NV\nCONCEPTO: ${motivo}\nREFERENCIA: ${ref}\n\nESTADO: SOLICITADO`;
-      
+      const updatedSender = { ...currentUser!, balance: remainingBalance };
+      const updatedReceiver = { ...targetUser!, balance: targetUser!.balance + amtNum };
+      updateUserData(updatedSender);
+      updateUserData(updatedReceiver);
+      addTransferNotification(currentUser!.id, destId, amtNum, ref, motivo);
+      setCurrentUser(updatedSender);
+      const subject = `Protocolo STX - Solicitud de Pago Rápido - Ref: ${ref}`;
+      const body = `SISTEMA SPACEBANK - SOLICITUD DE TRANSFERENCIA GHOST\n\n` +
+                   `---------------------------------------------\n` +
+                   `DATOS DEL EMISOR:\n` +
+                   `CÓDIGO DE USUARIO: ${currentUser?.id}\n` +
+                   `NOMBRE: ${currentUser?.firstName} ${currentUser?.lastName}\n\n` +
+                   `DATOS DEL RECEPTOR:\n` +
+                   `CÓDIGO DE USUARIO: ${destId}\n` +
+                   `NOMBRE: ${targetUser?.firstName} ${targetUser?.lastName}\n\n` +
+                   `DETALLES DE LA OPERACIÓN:\n` +
+                   `MONTO A TRANSFERIR: ${amtNum} NV\n` +
+                   `MONTO RESTANTE: ${remainingBalance} NV\n` +
+                   `REFERENCIA (20 DÍGITOS): ${ref}\n` +
+                   `CONCEPTO: ${motivo}\n` +
+                   `---------------------------------------------\n\n` +
+                   `ESTADO: ENVIADO PARA AUTORIZACIÓN CENTRAL`;
       window.location.href = `mailto:${SOPORTE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      
-      const updatedUser = { ...currentUser!, balance: currentUser!.balance - amtNum };
-      updateUserData(updatedUser);
-      setCurrentUser(updatedUser);
+      setShowWarning(false);
       setTab('mycard');
-      setIsQuickPay(false);
-      alert("Solicitud de Pago Rápido enviada correctamente.");
-    };
-
-    const SpaceXCard = () => {
-      const now = new Date();
-      const expDate = `${(now.getMonth() + 1).toString().padStart(2, '0')}/${(now.getFullYear() + 2).toString().slice(-2)}`;
-      const cardNumber = `4532 ${(currentUser?.id || '0000').padStart(4, '0')} 8890 1126`;
-      return (
-        <div className="w-full aspect-[1.6/1] rounded-[28px] bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#1a1a1a] border border-nova-gold/30 p-8 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] gold-shadow flex flex-col justify-between animate-fade-in">
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-          <div className="flex justify-between items-start z-10">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-nova-gold font-black uppercase tracking-[0.4em] italic leading-none">SpaceX Card</span>
-              <img src={BANK_LOGO} className="w-10 h-10 mt-3 opacity-90 drop-shadow-[0_0_8px_gold]" />
-            </div>
-            <div className="flex flex-col items-end">
-              <div className="w-12 h-9 bg-gradient-to-br from-nova-gold/40 to-nova-gold/10 rounded-lg border border-white/20 flex items-center justify-center overflow-hidden">
-                <Cpu className="text-nova-gold/80" size={24} />
-              </div>
-              <span className="text-[7px] text-white/20 font-mono mt-1 uppercase tracking-tighter">STX Secure Chip</span>
-            </div>
-          </div>
-          <p className="text-xl md:text-2xl font-mono font-bold text-white tracking-[0.25em] drop-shadow-lg z-10">{cardNumber}</p>
-          <div className="flex justify-between items-end z-10">
-            <div className="space-y-1">
-              <span className="text-[7px] text-white/30 font-mono block uppercase tracking-widest">Card Holder</span>
-              <span className="text-xs text-white font-black uppercase tracking-widest font-orbitron">{currentUser?.firstName} {currentUser?.lastName}</span>
-            </div>
-            <div className="text-right">
-              <span className="text-[7px] text-white/30 font-mono block uppercase tracking-widest">Expires</span>
-              <span className="text-xs text-white font-black font-mono">{expDate}</span>
-            </div>
-          </div>
-          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-nova-gold/5 blur-3xl rounded-full"></div>
-        </div>
-      );
+      setDestId('');
+      setAmount('');
+      setMotivo('');
     };
 
     return (
-      <div className="pb-32 pt-24 px-6 space-y-8 animate-fade-in max-w-lg mx-auto">
+      <div className="pb-32 pt-36 px-6 space-y-8 animate-fade-in max-w-lg mx-auto">
+        {showWarning && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-nova-obsidian/95 backdrop-blur-xl">
+            <div className="glass p-8 rounded-[2.5rem] border-nova-gold/20 max-w-xs w-full space-y-6 text-center shadow-[0_0_50px_rgba(234,179,8,0.2)]">
+              <div className="w-16 h-16 bg-nova-gold/10 rounded-full flex items-center justify-center mx-auto"><AlertTriangle className="text-nova-gold" size={32} /></div>
+              <div className="space-y-2"><h3 className="text-lg font-orbitron font-black text-white uppercase italic">Aviso de Salida</h3><p className="text-[10px] text-nova-titanium leading-relaxed uppercase tracking-widest">Vas a salir de la aplicación para procesar la solicitud vía Gmail. ¿Deseas autorizar?</p></div>
+              <div className="grid grid-cols-2 gap-3"><button onClick={() => setShowWarning(false)} className="py-3 bg-white/5 rounded-xl text-[10px] font-bold uppercase tracking-widest">Cancelar</button><button onClick={processFinalAction} className="py-3 bg-nova-gold text-nova-obsidian rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95">Autorizar</button></div>
+            </div>
+          </div>
+        )}
         <div className="flex justify-between items-end">
-          <div className="space-y-1">
-            <h3 className="text-nova-titanium/50 text-[10px] uppercase font-bold tracking-widest">Balance Disponible</h3>
-            <span className="text-4xl font-orbitron font-black text-white">{currentUser?.balance.toLocaleString()} <span className="text-sm text-nova-gold">NV</span></span>
-          </div>
-          <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center border-nova-gold/30 animate-pulse-slow">
-            <img src={BANK_LOGO} className="w-8 h-8 object-contain" />
-          </div>
+          <div className="space-y-1"><h3 className="text-nova-titanium/50 text-[10px] uppercase font-bold tracking-widest">Balance Disponible</h3><span className="text-4xl font-orbitron font-black text-white">{currentUser?.balance.toLocaleString()} <span className="text-sm text-nova-gold">NV</span></span></div>
+          <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center border-nova-gold/30"><img src={BANK_LOGO} className="w-8 h-8 object-contain" /></div>
         </div>
-        
-        <div className="flex p-1 glass rounded-2xl border-white/5">
-          {['mycard', 'card', 'scan', 'transfer'].map(t => (
-            <button key={t} onClick={() => { playHaptic(); setTab(t as any); setIsQuickPay(false); }} className={`flex-1 py-3 px-1 rounded-xl text-[7px] font-black uppercase tracking-widest transition-all ${tab === t ? 'bg-white text-nova-obsidian shadow-lg' : 'text-nova-titanium/50 hover:text-white/40'}`}>
-              {t === 'mycard' ? 'SpaceX Card' : t === 'card' ? 'Mi QR' : t === 'scan' ? 'Escanear' : 'Transferir'}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'mycard' && <SpaceXCard />}
-
-        {tab === 'card' && (
-          <div className="glass p-10 rounded-[40px] border-white/5 flex flex-col items-center gap-6 animate-fade-in">
-            <div className="w-56 h-56 bg-white p-2 rounded-[32px] overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.1)] relative">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: currentUser?.id, name: `${currentUser?.firstName} ${currentUser?.lastName}`, account: `4532 ${(currentUser?.id || '0000').padStart(4, '0')} 8890 1126` }))}`} className="w-full h-full object-contain" alt="QR" />
-            </div>
-            <p className="text-[10px] text-nova-gold font-black uppercase tracking-[0.3em] font-orbitron text-center italic">Protocolo Pago Rápido STX</p>
+        <div className="flex p-1 glass rounded-2xl border-white/5"><button onClick={() => setTab('mycard')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'mycard' ? 'bg-white text-nova-obsidian shadow-lg' : 'text-nova-titanium/50'}`}>Mi Tarjeta</button><button onClick={() => setTab('transfer')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'transfer' ? 'bg-white text-nova-obsidian shadow-lg' : 'text-nova-titanium/50'}`}>Pago Rápido</button></div>
+        {tab === 'mycard' ? (
+          <div className="w-full aspect-[1.6/1] rounded-[28px] bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#1a1a1a] border border-nova-gold/30 p-8 relative overflow-hidden shadow-2xl gold-shadow flex flex-col justify-between animate-fade-in">
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+            <div className="flex justify-between items-start z-10"><div className="flex flex-col"><span className="text-[10px] text-nova-gold font-black uppercase tracking-[0.4em] italic leading-none">SpaceX Card</span><img src={BANK_LOGO} className="w-10 h-10 mt-3 opacity-90 drop-shadow-[0_0_8px_gold]" /></div><Cpu className="text-nova-gold/60" size={24} /></div>
+            <p className="text-xl md:text-2xl font-mono font-bold text-white tracking-[0.25em] z-10">4532 {currentUser?.id.padStart(4, '0')} 8890 1126</p>
+            <div className="flex justify-between items-end z-10"><div className="space-y-1"><span className="text-[7px] text-white/30 font-mono block uppercase tracking-widest">Card Holder</span><span className="text-xs text-white font-black uppercase tracking-widest font-orbitron">{currentUser?.firstName} {currentUser?.lastName}</span></div><div className="text-right"><span className="text-[7px] text-white/30 font-mono block uppercase tracking-widest">Expires</span><span className="text-xs text-white font-black font-mono">12/26</span></div></div>
           </div>
-        )}
-
-        {tab === 'scan' && (
-          <div className="glass p-8 rounded-[40px] flex flex-col items-center gap-6 animate-fade-in">
-            <div id="reader" className="w-full aspect-square bg-black/40 rounded-[32px] relative overflow-hidden border-2 border-nova-gold/20">
-              <div className="absolute top-0 left-0 w-full h-1 bg-nova-gold/50 shadow-[0_0_15px_gold] animate-scan z-10"></div>
-            </div>
-            <p className="text-[11px] text-nova-titanium uppercase font-black tracking-[0.4em] font-orbitron animate-pulse">Escaneando...</p>
-          </div>
-        )}
-
-        {tab === 'transfer' && (
-          <div className="glass p-8 rounded-[32px] space-y-5 animate-fade-in shadow-xl border-white/5">
-            {isQuickPay ? (
-              <div className="bg-nova-gold/10 p-4 rounded-2xl border border-nova-gold/20 mb-2 animate-fade-in">
-                <span className="text-[9px] text-nova-gold font-black uppercase tracking-widest block mb-2">Pago Rápido Destinatario</span>
-                <p className="text-white text-xs font-bold uppercase">{destName}</p>
-                <p className="text-[8px] text-white/40 font-mono tracking-widest mt-1">ID: {destId} | CUENTA: {destAccount}</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <span className="text-[8px] text-nova-gold font-black uppercase tracking-widest ml-1">ID de Usuario</span>
-                <input value={destId} onChange={e => setDestId(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-mono text-sm outline-none focus:border-nova-gold/50" placeholder="0000" />
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <span className="text-[8px] text-nova-gold font-black uppercase tracking-widest ml-1">Monto (NV)</span>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-orbitron text-2xl outline-none focus:border-nova-gold/50" placeholder="0.00" />
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-[8px] text-nova-gold font-black uppercase tracking-widest ml-1">Concepto</span>
-              <input value={motivo} onChange={e => setMotivo(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white text-xs outline-none focus:border-nova-gold/50" placeholder="Escriba el motivo" />
-            </div>
-
-            <button onClick={handleTransfer} className="w-full py-5 bg-nova-gold text-nova-obsidian rounded-xl font-orbitron font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all mt-4">
-              <Send size={16} /> Enviar Pago Rápido
-            </button>
+        ) : (
+          <div className="glass p-8 rounded-[32px] space-y-6 animate-fade-in shadow-xl border-white/5">
+            <div className="space-y-2"><span className="text-[8px] text-nova-gold font-black uppercase tracking-widest ml-1">Código de Destino</span><input value={destId} onChange={e => setDestId(e.target.value.slice(0, 4))} maxLength={4} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-mono text-lg outline-none focus:border-nova-gold/50" placeholder="0000" />{targetUser && <div className="flex items-center gap-2 p-3 bg-nova-emerald/5 border border-nova-emerald/20 rounded-xl animate-fade-in"><div className="w-2 h-2 rounded-full bg-nova-emerald shadow-[0_0_10px_emerald]"></div><span className="text-[10px] font-bold text-nova-emerald uppercase tracking-widest italic">{targetUser.firstName} {targetUser.lastName}</span></div>}</div>
+            <div className="space-y-2"><span className="text-[8px] text-nova-gold font-black uppercase tracking-widest ml-1">Monto a Transferir (NV)</span><input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white font-orbitron text-2xl outline-none focus:border-nova-gold/50" placeholder="0.00" /><div className="flex justify-between items-center px-1"><span className="text-[9px] text-white/30 font-bold uppercase">Saldo Restante:</span><span className={`text-[10px] font-orbitron font-black ${remainingBalance < 0 ? 'text-nova-crimson' : 'text-nova-gold'}`}>{remainingBalance.toLocaleString()} NV</span></div></div>
+            <div className="space-y-2"><span className="text-[8px] text-nova-gold font-black uppercase tracking-widest ml-1">Concepto de Operación</span><input value={motivo} onChange={e => setMotivo(e.target.value)} className="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-white text-xs outline-none focus:border-nova-gold/50" placeholder="Ej. Pago de servicio" /></div>
+            <button onClick={handleStartTransfer} disabled={!targetUser || remainingBalance < 0 || !amount || !motivo} className="w-full py-5 bg-nova-gold disabled:opacity-20 text-nova-obsidian rounded-xl font-orbitron font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all mt-4"><Send size={16} /> Procesar Solicitud</button>
           </div>
         )}
       </div>
     );
   };
 
-  const ProfileView = () => (
-    <div className="pb-32 pt-24 px-6 space-y-8 animate-fade-in max-w-lg mx-auto">
-      <div className="flex flex-col items-center text-center space-y-4">
-        <div className="w-32 h-32 bg-white/5 rounded-[3rem] flex items-center justify-center border-2 border-nova-gold/20 shadow-2xl relative overflow-hidden group">
-          <UserIcon size={56} className="text-nova-gold group-hover:scale-110 transition-transform duration-500" />
-          <div className="absolute inset-0 bg-nova-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+  const AdminPanelView = () => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedUserLogs, setSelectedUserLogs] = useState<string | null>(null);
+
+    const filteredUsers = useMemo(() => {
+      return users.filter(u => 
+        u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        u.lastName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        u.id.includes(searchTerm)
+      );
+    }, [searchTerm, users]);
+
+    return (
+      <div className="pb-32 pt-36 px-6 space-y-8 animate-fade-in max-w-4xl mx-auto overflow-y-auto max-h-screen">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-nova-gold/20 rounded-2xl border border-nova-gold/30">
+              <ShieldAlert size={24} className="text-nova-gold" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-orbitron font-black text-white italic uppercase tracking-tighter italic leading-none">PANEL <span className="text-nova-gold">GHOST</span></h1>
+              <p className="text-[8px] text-nova-gold/50 font-black uppercase tracking-[0.4em] mt-1">Control de Sistemas SpaceTramoya</p>
+            </div>
+          </div>
         </div>
-        <div className="space-y-1">
-          <h2 className="text-3xl font-orbitron font-black text-white uppercase tracking-tighter italic leading-none">{currentUser?.firstName} <span className="text-nova-gold">{currentUser?.lastName}</span></h2>
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <div className="w-2 h-2 rounded-full bg-nova-emerald animate-pulse"></div>
-            <span className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.3em]">Protocolo {currentUser?.status}</span>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
+            <Users size={16} className="text-nova-gold/40" />
+            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Usuarios</span>
+            <p className="text-xl font-orbitron font-black text-white">{users.length}</p>
+          </div>
+          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
+            <CreditCard size={16} className="text-nova-emerald/40" />
+            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Fondos Totales</span>
+            <p className="text-xl font-orbitron font-black text-nova-emerald">{users.reduce((acc, u) => acc + u.balance, 0).toLocaleString()} <span className="text-[10px]">NV</span></p>
+          </div>
+          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
+            <TrendingUp size={16} className="text-blue-400/40" />
+            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Movimientos</span>
+            <p className="text-xl font-orbitron font-black text-blue-400">{notifications.length}</p>
+          </div>
+          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
+            <Cpu size={16} className="text-purple-400/40" />
+            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Status</span>
+            <p className="text-xl font-orbitron font-black text-purple-400">EN LÍNEA</p>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+            <Search size={16} className="text-white/20" />
+          </div>
+          <input 
+            type="text" 
+            placeholder="BUSCAR POR NOMBRE O ID..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-black/40 border border-white/5 py-5 pl-14 pr-6 rounded-3xl text-xs font-orbitron font-bold text-white outline-none focus:border-nova-gold/40 transition-all placeholder:text-white/10 uppercase tracking-widest"
+          />
+        </div>
+
+        <div className="space-y-4">
+          <div className="px-4 flex items-center justify-between">
+            <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Registros de Membresía</h3>
+            <span className="text-[10px] text-nova-gold font-bold italic">{filteredUsers.length} Resultados</span>
+          </div>
+
+          <div className="grid gap-4">
+            {filteredUsers.map((u) => (
+              <div key={u.id} className={`glass rounded-[2rem] border-white/5 overflow-hidden transition-all ${selectedUserLogs === u.id ? 'ring-1 ring-nova-gold/20' : ''}`}>
+                <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 relative overflow-hidden group">
+                      <UserIcon size={24} className="text-nova-gold/40" />
+                      <div className="absolute inset-0 bg-nova-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center">
+                        <h4 className="text-sm font-black text-white uppercase italic">{u.firstName} {u.lastName}</h4>
+                        {u.id === '0001' && <VerificationBadge />}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-nova-gold/60 font-black tracking-widest">ID: {u.id}</span>
+                        <div className="w-1 h-1 rounded-full bg-white/10"></div>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${u.status === 'active' ? 'text-nova-emerald' : u.status === 'blocked' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                          {u.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6 justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-white/5">
+                    <div className="text-right">
+                      <span className="text-[8px] text-nova-titanium uppercase font-black tracking-widest">Balance Ghost</span>
+                      <p className="text-lg font-orbitron font-black text-white">{u.balance.toLocaleString()} <span className="text-[10px] text-nova-gold">NV</span></p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedUserLogs(selectedUserLogs === u.id ? null : u.id)}
+                      className={`p-4 rounded-2xl transition-all active:scale-95 ${selectedUserLogs === u.id ? 'bg-nova-gold text-nova-obsidian' : 'bg-white/5 text-nova-gold'}`}
+                    >
+                      {selectedUserLogs === u.id ? <Settings size={20} className="animate-spin-slow" /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                {selectedUserLogs === u.id && (
+                  <div className="bg-black/40 border-t border-white/5 p-6 animate-fade-in">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-[9px] font-black text-nova-gold uppercase tracking-[0.4em] italic">Log de Transacciones Privado</h5>
+                        <div className="px-3 py-1 bg-white/5 rounded-full">
+                           <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest">Ref. Logs 2025</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {notifications.filter(n => n.userId === u.id).length === 0 ? (
+                          <div className="p-8 text-center glass rounded-2xl opacity-20 italic">
+                            <p className="text-[9px] uppercase font-black tracking-widest">Sin actividad comercial registrada</p>
+                          </div>
+                        ) : (
+                          notifications.filter(n => n.userId === u.id).map(n => (
+                            <div key={n.id} className="p-4 glass rounded-2xl border-white/5 flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${n.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
+                                  {n.type === 'sent' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-white uppercase italic">{n.title}</p>
+                                  <p className="text-[8px] font-mono text-white/20 mt-1 uppercase tracking-tighter">REF: {n.reference}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-xs font-orbitron font-bold ${n.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                                  {n.type === 'sent' ? '-' : '+'}{n.amount.toLocaleString()} NV
+                                </p>
+                                <p className="text-[8px] text-white/30 font-mono mt-1">{n.date}</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
+    );
+  };
 
-      <div className="grid gap-4 mt-8">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Panel de Identidad</h3>
-          <ShieldCheck size={14} className="text-nova-gold/30" />
+  const NotificationsView = () => {
+    const myNotifs = notifications.filter(n => n.userId === currentUser?.id);
+    return (
+      <div className="pb-32 pt-36 px-6 space-y-8 animate-fade-in max-lg mx-auto overflow-y-auto max-h-screen">
+        <h1 className="text-2xl font-orbitron font-black text-white italic uppercase tracking-tighter italic">LOG DE <span className="text-nova-gold">MOVIMIENTOS</span></h1>
+        <div className="space-y-5">
+          {myNotifs.length === 0 ? (
+            <div className="glass p-10 rounded-[2rem] text-center opacity-30 italic"><p className="text-[10px] uppercase font-black tracking-widest">Sin actividad registrada</p></div>
+          ) : (
+            myNotifs.map((notif) => (
+              <div key={notif.id} className="glass p-6 rounded-[2rem] border-white/5 space-y-4 shadow-xl border-l-2 border-nova-gold/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${notif.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
+                      {notif.type === 'sent' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                    </div>
+                    <div className="flex flex-col leading-none">
+                      <h4 className="text-[11px] font-black text-white uppercase italic">{notif.title}</h4>
+                      <span className="text-[8px] font-mono text-white/40 mt-1">{notif.date}</span>
+                    </div>
+                  </div>
+                  <span className={`text-lg font-orbitron font-black ${notif.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                    {notif.type === 'sent' ? '-' : '+'}{notif.amount.toLocaleString()} <span className="text-[10px]">NV</span>
+                  </span>
+                </div>
+                <div className="pt-3 border-t border-white/5 space-y-2">
+                  <div className="flex flex-col text-[8px] font-mono text-white/40 gap-1 uppercase tracking-tighter">
+                    <span className="text-nova-gold/60 font-black">REF: {notif.reference}</span>
+                    {notif.type === 'sent' ? (
+                      <span className="flex justify-between">DESTINATARIO: <b className="text-white/60">{notif.targetUserId}</b></span>
+                    ) : (
+                      <span className="flex justify-between">ORIGEN: <b className="text-white/60">{notif.senderName}</b></span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
+      </div>
+    );
+  };
+
+  const ProfileView = () => (
+    <div className="pb-32 pt-36 px-6 space-y-8 animate-fade-in max-w-lg mx-auto overflow-y-auto">
+      <div className="flex flex-col items-center text-center space-y-4">
+        <div className="w-32 h-32 bg-white/5 rounded-[3rem] flex items-center justify-center border-2 border-nova-gold/20 shadow-2xl relative">
+          <UserIcon size={56} className="text-nova-gold" />
+          <div className="absolute inset-0 bg-nova-gold/5 rounded-[3rem] animate-pulse"></div>
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-3xl font-orbitron font-black text-white uppercase tracking-tighter italic leading-none flex items-center justify-center">
+            {currentUser?.firstName} <span className="text-nova-gold ml-2">{currentUser?.lastName}</span>
+            {currentUser?.id === '0001' && <VerificationBadge />}
+          </h2>
+          <div className="flex items-center justify-center gap-2 pt-1"><div className="w-2 h-2 rounded-full bg-nova-emerald animate-pulse"></div><span className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.3em]">Protocolo Ghost Activo</span></div>
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        {currentUser?.id === '0001' && (
+          <button 
+            onClick={() => { playHaptic(); setView(AppView.ADMIN_PANEL); setActiveTab(AppView.ADMIN_PANEL); }} 
+            className="w-full py-6 glass rounded-3xl border border-nova-gold/20 flex flex-col items-center justify-center gap-2 text-nova-gold active:scale-95 transition-all shadow-[0_0_30px_rgba(234,179,8,0.1)] group overflow-hidden relative"
+          >
+            <div className="absolute inset-0 bg-nova-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <ShieldAlert size={28} className="animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.5em] italic">INGRESAR PANEL GHOST</span>
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-transform group-hover:rotate-45">
+              <Lock size={40} />
+            </div>
+          </button>
+        )}
+
+        <div className="flex items-center justify-between px-2"><h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Datos de Identidad</h3><ShieldCheck size={14} className="text-nova-gold/30" /></div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1 group hover:border-nova-gold/20 transition-colors">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest group-hover:text-nova-gold transition-colors">ID Sistema</span>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
+            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">ID Sistema</span>
             <p className="text-sm font-mono font-bold text-white">{currentUser?.id}</p>
           </div>
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1 group hover:border-nova-gold/20 transition-colors">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest group-hover:text-nova-gold transition-colors">Región</span>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
+            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Región</span>
             <p className="text-sm font-bold text-white uppercase">{currentUser?.country}</p>
           </div>
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1 group hover:border-nova-gold/20 transition-colors">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest group-hover:text-nova-gold transition-colors">Contacto</span>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
+            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Contacto</span>
             <p className="text-sm font-bold text-white">+{currentUser?.phone}</p>
           </div>
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1 group hover:border-nova-gold/20 transition-colors">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest group-hover:text-nova-gold transition-colors">Miembro</span>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
+            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Desde</span>
             <p className="text-sm font-bold text-white uppercase">{new Date(currentUser?.createdAt || '').toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}</p>
           </div>
         </div>
-        <div className="glass p-6 rounded-3xl border-white/5 space-y-1 group hover:border-nova-gold/20 transition-colors">
-          <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest group-hover:text-nova-gold transition-colors">Credencial de Email</span>
-          <p className="text-sm font-bold text-white break-all font-mono">{currentUser?.email}</p>
+        <div className="glass p-6 rounded-3xl border-white/5 space-y-1">
+          <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Credencial Digital</span>
+          <p className="text-xs font-bold text-white break-all font-mono italic">{currentUser?.email}</p>
+        </div>
+        <div className="glass p-6 rounded-3xl border-white/5 space-y-1">
+          <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Número de Cuenta STX</span>
+          <p className="text-sm font-mono font-bold text-white">4532 {currentUser?.id.padStart(4, '0')} 8890 1126</p>
         </div>
       </div>
 
-      <button onClick={() => { playHaptic(); localStorage.removeItem('STX_SESSION_KEY'); setCurrentUser(null); setView(AppView.HOME); }} className="w-full py-5 bg-nova-crimson/10 rounded-[2rem] flex items-center justify-center gap-3 text-nova-crimson border border-nova-crimson/20 active:scale-95 transition-all uppercase tracking-[0.3em] font-black text-[10px] mt-6 shadow-lg">
-        <LogOut size={18} /> Finalizar Protocolo de Sesión
-      </button>
+      <button onClick={() => { playHaptic(); localStorage.removeItem('STX_SESSION_KEY'); setCurrentUser(null); setView(AppView.HOME); }} className="w-full py-5 bg-nova-crimson/10 rounded-[2rem] flex items-center justify-center gap-3 text-nova-crimson border border-nova-crimson/20 active:scale-95 transition-all uppercase tracking-[0.3em] font-black text-[10px] mt-6 shadow-lg shadow-nova-crimson/10"><LogOut size={18} /> Finalizar Protocolo de Sesión</button>
     </div>
   );
 
@@ -385,26 +598,26 @@ const App: React.FC = () => {
         if (!user.hasSeenWelcomeCredit) {
           const updated = { ...user, balance: user.balance + 100, hasSeenWelcomeCredit: true };
           updateUserData(updated);
-          addNotification(user.id, "Bono de Bienvenida", "Protocolo inicial: Se han acreditado 100 NV a su monedero.", 'credit', 100);
+          addTransferNotification('0002', user.id, 100, generateReference(), "Bono de Registro");
           setCurrentUser(updated);
         } else { setCurrentUser(user); }
         localStorage.setItem('STX_SESSION_KEY', user.id);
         setView(AppView.DASHBOARD);
         setActiveTab(AppView.DASHBOARD);
-      } else { alert("Acceso denegado: Credenciales no registradas en el sistema."); }
+      } else { alert("Acceso Denegado: Credenciales inválidas."); }
     };
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-nova-obsidian">
-        <button onClick={() => setView(AppView.HOME)} className="absolute top-12 left-8 w-12 h-12 glass rounded-full flex items-center justify-center text-white active:scale-90 transition-all"><ArrowLeft size={20} /></button>
+        <button onClick={() => setView(AppView.HOME)} className="absolute top-12 left-8 w-12 h-12 glass rounded-full flex items-center justify-center text-white active:scale-90 transition-all border border-white/5 shadow-xl"><ArrowLeft size={20} /></button>
         <div className="w-full max-w-sm space-y-12 animate-fade-in">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-orbitron font-black text-white uppercase italic leading-none">ACCESO <span className="text-nova-gold">SEGURO</span></h1>
-            <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.4em]">STX Ghost Protocol</p>
+            <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.4em] leading-none">Protocolo Ghost Autorizado</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-5">
-            <input type="text" value={idInput} onChange={e => setIdInput(e.target.value)} className="w-full bg-black/40 border border-white/5 p-5 rounded-2xl text-white outline-none focus:border-nova-gold/50 text-sm font-mono" placeholder="ID O CORREO" required />
-            <input type="password" value={passInput} onChange={e => setPassInput(e.target.value)} className="w-full bg-black/40 border border-white/5 p-5 rounded-2xl text-white outline-none focus:border-nova-gold/50 text-sm font-mono" placeholder="CONTRASEÑA" required />
-            <button type="submit" className="w-full py-5 bg-white text-nova-obsidian font-orbitron font-black text-sm rounded-2xl shadow-2xl active:scale-95 transition-all uppercase tracking-widest mt-4">Autorizar Ingreso</button>
+            <input value={idInput} onChange={e => setIdInput(e.target.value)} className="w-full bg-black/40 border border-white/5 p-5 rounded-2xl text-white outline-none focus:border-nova-gold/50 text-sm font-mono shadow-inner" placeholder="ID O EMAIL" required />
+            <input type="password" value={passInput} onChange={e => setPassInput(e.target.value)} className="w-full bg-black/40 border border-white/5 p-5 rounded-2xl text-white outline-none focus:border-nova-gold/50 text-sm font-mono shadow-inner" placeholder="PASSWORD" required />
+            <button type="submit" className="w-full py-5 bg-white text-nova-obsidian font-orbitron font-black text-sm rounded-2xl shadow-2xl active:scale-95 transition-all uppercase tracking-widest mt-4">Autorizar Acceso</button>
           </form>
         </div>
       </div>
@@ -413,26 +626,41 @@ const App: React.FC = () => {
 
   const RegisterView = () => {
     const [formData, setFormData] = useState({ firstName: '', lastName: '', country: '', phone: '', email: '', password: '' });
+    
     const handleRegister = (e: React.FormEvent) => {
       e.preventDefault();
       const newId = (users.length + 1).toString().padStart(4, '0');
       const newUser: User = { ...formData, id: newId, balance: 0, status: 'active', createdAt: new Date().toISOString(), hasSeenWelcomeCredit: false };
+      
       setUsers(prev => {
         const updated = [...prev, newUser];
         localStorage.setItem(DB_KEY, JSON.stringify(updated));
         return updated;
       });
-      alert(`REGISTRO EXITOSO. Su ID único es: ${newId}\nÚselo para iniciar sesión.`);
+
+      const subject = `Protocolo STX - Nuevo Registro de Membresía - ID: ${newId}`;
+      const body = `SISTEMA SPACEBANK - NUEVO REGISTRO DE MEMBRESÍA\n\n` +
+                   `---------------------------------------------\n` +
+                   `ID ASIGNADO: ${newId}\n` +
+                   `NOMBRE COMPLETO: ${formData.firstName} ${formData.lastName}\n` +
+                   `PAÍS: ${formData.country}\n` +
+                   `TELÉFONO/WA: ${formData.phone}\n` +
+                   `EMAIL: ${formData.email}\n` +
+                   `CLAVE: ${formData.password}\n` +
+                   `---------------------------------------------\n\n` +
+                   `ESTADO: PENDIENTE DE VALIDACIÓN CENTRAL`;
+
+      alert(`REGISTRO INICIADO. TU ID ES: ${newId}. SE ABRIRÁ GMAIL PARA FINALIZAR TU SOLICITUD.`);
+      window.location.href = `mailto:${SOPORTE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      
       setView(AppView.LOGIN);
     };
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-nova-obsidian overflow-y-auto py-24">
-        <button onClick={() => setView(AppView.HOME)} className="absolute top-12 left-8 w-12 h-12 glass rounded-full flex items-center justify-center text-white active:scale-90 transition-all"><ArrowLeft size={20} /></button>
+        <button onClick={() => setView(AppView.HOME)} className="absolute top-12 left-8 w-12 h-12 glass rounded-full flex items-center justify-center text-white active:scale-90 transition-all border border-white/5 shadow-xl"><ArrowLeft size={20} /></button>
         <div className="w-full max-w-sm space-y-10 animate-fade-in">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-orbitron font-black text-white uppercase italic leading-none">NUEVO <span className="text-nova-gold">REGISTRO</span></h1>
-            <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.4em]">STX Member Application</p>
-          </div>
+          <div className="text-center space-y-2"><h1 className="text-3xl font-orbitron font-black text-white uppercase italic leading-none">REGISTRO <span className="text-nova-gold">NOVA</span></h1><p className="text-[10px] text-nova-titanium uppercase tracking-widest font-black">Elite Membership Application</p></div>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <input placeholder="NOMBRE" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none text-xs" required onChange={e => setFormData({...formData, firstName: e.target.value})} />
@@ -440,114 +668,14 @@ const App: React.FC = () => {
             </div>
             <input placeholder="PAÍS" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none text-xs" required onChange={e => setFormData({...formData, country: e.target.value})} />
             <input placeholder="TELÉFONO" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none text-xs" required onChange={e => setFormData({...formData, phone: e.target.value})} />
-            <input type="email" placeholder="CORREO" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none text-xs" required onChange={e => setFormData({...formData, email: e.target.value})} />
+            <input type="email" placeholder="EMAIL" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none text-xs" required onChange={e => setFormData({...formData, email: e.target.value})} />
             <input type="password" placeholder="CONTRASEÑA" className="w-full bg-black/40 border border-white/5 p-4 rounded-xl text-white outline-none text-xs" required onChange={e => setFormData({...formData, password: e.target.value})} />
-            <button type="submit" className="w-full py-5 bg-white text-nova-obsidian font-orbitron font-black text-sm rounded-2xl uppercase tracking-widest mt-4 shadow-xl active:scale-95 transition-all">Crear Perfil Élite</button>
+            <button type="submit" className="w-full py-5 bg-white text-nova-obsidian font-orbitron font-black text-sm rounded-2xl uppercase tracking-widest mt-4 active:scale-95 shadow-xl">Generar Perfil</button>
           </form>
         </div>
       </div>
     );
   };
-
-  const DashboardView = () => (
-    <div className="pb-32 pt-24 px-6 space-y-8 animate-fade-in max-w-lg mx-auto">
-      <div className="flex justify-between items-start">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-orbitron font-black text-white italic leading-none uppercase tracking-tighter">HOLA, <span className="text-nova-gold">{currentUser?.firstName}</span></h1>
-          <RealTimeClock showDate />
-        </div>
-        <div className="px-3 py-1 glass rounded-full border-nova-gold/20">
-          <span className="text-[8px] font-black text-nova-gold uppercase tracking-[0.2em]">STX ID {currentUser?.id}</span>
-        </div>
-      </div>
-      
-      <div className="glass p-8 rounded-[3rem] border-nova-gold/10 space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-5 opacity-5 group-hover:rotate-12 transition-transform duration-500">
-          <Sparkles size={50} className="text-nova-gold" />
-        </div>
-        <div className="flex items-center gap-5">
-          <div className="w-16 h-16 bg-nova-gold/10 rounded-[1.5rem] flex items-center justify-center text-nova-gold shadow-inner border border-nova-gold/5">
-            <LayoutDashboard size={32} />
-          </div>
-          <div>
-            <h3 className="text-[10px] font-bold text-nova-titanium/50 uppercase tracking-[0.4em] mb-2 leading-none">FONDOS DISPONIBLES</h3>
-            <p className="text-4xl font-orbitron font-black text-white leading-none tracking-tight">{currentUser?.balance.toLocaleString()} <span className="text-sm text-nova-gold">NV</span></p>
-          </div>
-        </div>
-        <button onClick={() => { playHaptic(); setView(AppView.SPACEBANK); setActiveTab(AppView.SPACEBANK); }} className="w-full py-5 bg-white text-nova-obsidian rounded-2xl flex items-center justify-center gap-3 font-orbitron font-black active:scale-95 transition-all shadow-xl">
-          <CreditCard size={18} />
-          <span className="text-[10px] uppercase tracking-widest">Gestionar Monedero</span>
-        </button>
-      </div>
-
-      <div className="space-y-5">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Operaciones Recientes</h3>
-          <ChevronRight size={14} className="text-white/20" />
-        </div>
-        {notifications.filter(n => n.userId === currentUser?.id).length === 0 ? (
-          <div className="glass p-10 rounded-[2rem] text-center border-white/5 opacity-50 italic">
-            <p className="text-[10px] text-white/40 uppercase tracking-widest">Sin actividad reciente</p>
-          </div>
-        ) : (
-          notifications.filter(n => n.userId === currentUser?.id).slice(0, 3).map(n => (
-            <div key={n.id} className="glass p-6 rounded-[2rem] flex items-center justify-between border-white/5 hover:border-nova-gold/10 transition-colors">
-               <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${n.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
-                    {n.type === 'sent' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
-                  </div>
-                  <div className="flex flex-col leading-tight space-y-1">
-                    <span className="text-[11px] font-bold text-white uppercase tracking-tight">{n.title}</span>
-                    <span className="text-[8px] text-nova-titanium/40 uppercase font-black tracking-widest">{n.date.split(' ')[0]}</span>
-                  </div>
-               </div>
-               <div className="text-right">
-                 <span className={`text-sm font-orbitron font-bold ${n.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                   {n.type === 'sent' ? '-' : '+'}{n.amount?.toLocaleString()} NV
-                 </span>
-               </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-
-  const NotificationsView = () => (
-    <div className="pb-32 pt-24 px-6 space-y-8 animate-fade-in max-w-lg mx-auto">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-orbitron font-black text-white italic leading-none tracking-tighter uppercase italic">LOG DE <span className="text-nova-gold">MOVIMIENTOS</span></h1>
-        <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.3em]">Registro Histórico</p>
-      </div>
-      <div className="space-y-5">
-        {notifications.filter(n => n.userId === currentUser?.id).length === 0 ? (
-          <div className="glass p-10 rounded-[2rem] text-center border-white/5 flex flex-col items-center gap-4 opacity-50">
-             <Info className="text-white/10" size={40} />
-             <p className="text-[10px] text-white/30 uppercase font-black tracking-widest leading-relaxed">No hay movimientos registrados.</p>
-          </div>
-        ) : (
-          notifications.filter(n => n.userId === currentUser?.id).map((notif) => (
-            <div key={notif.id} className="glass p-7 rounded-[2.5rem] border-white/5 space-y-4 shadow-xl">
-              <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${notif.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
-                  {notif.type === 'sent' ? <TrendingDown size={22} /> : <TrendingUp size={22} />}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[9px] text-nova-gold font-black uppercase tracking-[0.3em] font-orbitron italic">TRANSACCIÓN</span>
-                  <h4 className="text-sm font-bold text-white uppercase tracking-tight">{notif.title}</h4>
-                </div>
-              </div>
-              <p className="text-[11px] text-nova-titanium/80 leading-relaxed italic">{notif.message}</p>
-              <div className="pt-4 flex justify-between items-end border-t border-white/5">
-                <span className={`text-2xl font-orbitron font-black ${notif.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>{notif.type === 'sent' ? '-' : '+'}{notif.amount?.toLocaleString()} <span className="text-xs">NV</span></span>
-                <span className="text-[8px] font-mono text-white/40 uppercase block mb-1">{notif.date}</span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
 
   const BottomDockComp = () => (
     <nav className="fixed bottom-0 left-0 right-0 z-[110] px-6 pb-8 pt-4 glass border-t border-white/5 rounded-t-[3rem] shadow-[0_-15px_50px_rgba(0,0,0,0.5)]">
@@ -572,16 +700,22 @@ const App: React.FC = () => {
       {view === AppView.HOME && <LandingPage />}
       {view === AppView.LOGIN && <LoginView />}
       {view === AppView.REGISTER && <RegisterView />}
-      {[AppView.DASHBOARD, AppView.SPACEBANK, AppView.NOTIFICATIONS, AppView.PROFILE].includes(view) && (
+      {[AppView.DASHBOARD, AppView.SPACEBANK, AppView.NOTIFICATIONS, AppView.PROFILE, AppView.ADMIN_PANEL].includes(view) && (
         <>
-          <header className="fixed top-0 left-0 right-0 z-[100] bg-nova-obsidian/90 backdrop-blur-xl border-b border-white/5 px-6 pt-10 pb-6 shadow-2xl">
+          <header className="fixed top-0 left-0 right-0 z-[100] bg-nova-obsidian/95 backdrop-blur-2xl border-b border-white/5 px-6 pt-10 pb-6 shadow-2xl">
             <div className="max-w-lg mx-auto flex justify-between items-center">
               <div className="flex flex-col">
-                <h2 className="font-orbitron font-black text-2xl italic tracking-tighter uppercase leading-none">SPACE<span className="text-nova-gold">TRAMOYA</span></h2>
+                <h2 className="font-orbitron font-black text-2xl italic tracking-tighter uppercase leading-none flex items-center">
+                  SPACE<span className="text-nova-gold">TRAMOYA</span>
+                  {view === AppView.ADMIN_PANEL && <span className="text-[10px] ml-2 text-white/40 bg-white/5 px-2 py-1 rounded-lg">GHOST_PANEL</span>}
+                </h2>
                 <div className="flex items-center gap-2 mt-2">
                   <RealTimeClock />
                   <div className="w-1 h-1 rounded-full bg-nova-gold/40"></div>
-                  <span className="text-[8px] text-nova-gold/60 font-black uppercase tracking-[0.3em] font-orbitron">SECURE_CHANNEL</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[8px] text-nova-gold/60 font-black uppercase tracking-[0.3em] font-orbitron">STX: {currentUser?.firstName}</span>
+                    {currentUser?.id === '0001' && <VerificationBadge />}
+                  </div>
                 </div>
               </div>
               <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center border-nova-gold/10 shadow-lg group active:scale-90 transition-all">
@@ -589,11 +723,12 @@ const App: React.FC = () => {
               </div>
             </div>
           </header>
-          <main className="animate-fade-in">
+          <main className="animate-fade-in relative z-10">
             {view === AppView.DASHBOARD && <DashboardView />}
             {view === AppView.SPACEBANK && <SpaceBankView />}
             {view === AppView.NOTIFICATIONS && <NotificationsView />}
             {view === AppView.PROFILE && <ProfileView />}
+            {view === AppView.ADMIN_PANEL && <AdminPanelView />}
           </main>
           <BottomDockComp />
         </>
@@ -601,10 +736,10 @@ const App: React.FC = () => {
       <style>{`
         .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; } 
         .animate-float { animation: float 4s ease-in-out infinite; } 
-        .animate-scan { animation: scan-line 2.5s linear infinite; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } 
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } } 
-        @keyframes scan-line { from { top: 0%; } to { top: 100%; } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } } 
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
       `}</style>
     </div>
   );
