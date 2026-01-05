@@ -1,3 +1,4 @@
+
 export enum AppView {
   HOME = 'HOME',
   REGISTER = 'REGISTER',
@@ -17,7 +18,7 @@ export interface Notification {
   message: string;
   date: string;
   isRead: boolean;
-  type: 'credit' | 'sent' | 'received';
+  type: 'credit' | 'sent' | 'received' | 'tax';
   amount: number;
   reference: string;
   targetUserId?: string;
@@ -33,8 +34,9 @@ export interface User {
   email: string;
   password?: string;
   balance: number;
+  savingsBalance: number; // Nueva cuenta de ahorro
   status: 'pending' | 'active' | 'blocked';
   createdAt: string;
   hasSeenWelcomeCredit?: boolean;
-  lastTaxMonth?: string;
+  lastTaxMonth?: string; // Para controlar el cobro mensual
 }

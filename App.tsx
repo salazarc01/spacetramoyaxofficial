@@ -25,17 +25,21 @@ import {
   Settings,
   ShieldAlert,
   Search,
-  Users
+  Users,
+  PiggyBank,
+  Wallet
 } from 'lucide-react';
 import { AppView, User, Notification } from './types';
 
 const BANK_LOGO = "https://i.postimg.cc/kD3Pn8C6/Photoroom-20251229-195028.png";
 const SOPORTE_EMAIL = "soportespacetramoyax@gmail.com";
+const TAX_AMOUNT = 0.14;
 
 const INITIAL_USERS: User[] = [
-  { id: '0001', firstName: 'Luis', lastName: 'Alejandro', country: 'Venezuela', phone: '584123151217', email: 'luissalazarcabrera85@gmail.com', password: 'v9451679', balance: 100, status: 'active', createdAt: '2025-01-04T12:00:00Z', hasSeenWelcomeCredit: false },
-  { id: '0002', firstName: 'Miss', lastName: 'Slam Virtual', country: 'El Salvador', phone: '50375431212', email: 'missslamvirtual@tramoyax.cdlt', password: 'ms0121', balance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false },
-  { id: '0003', firstName: 'Alex', lastName: 'Duarte', country: 'Honduras', phone: '89887690', email: 'alex.504@tramoyax.cdlt', password: 'copito.123', balance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false }
+  { id: '0000', firstName: 'Rebecca', lastName: 'Oficial', country: 'Estados Unidos', phone: '0000000000', email: 'spacetramoya@tramoyax.cdlt', password: 's9451679', balance: 1000000, savingsBalance: 0, status: 'active', createdAt: '2025-01-01T00:00:00Z', hasSeenWelcomeCredit: true, lastTaxMonth: '' },
+  { id: '0001', firstName: 'Luis', lastName: 'Alejandro', country: 'Venezuela', phone: '584123151217', email: 'luissalazarcabrera85@gmail.com', password: 'v9451679', balance: 100, savingsBalance: 0, status: 'active', createdAt: '2025-01-04T12:00:00Z', hasSeenWelcomeCredit: false, lastTaxMonth: '' },
+  { id: '0002', firstName: 'Miss', lastName: 'Slam Virtual', country: 'El Salvador', phone: '50375431212', email: 'missslamvirtual@tramoyax.cdlt', password: 'ms0121', balance: 0, savingsBalance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false, lastTaxMonth: '' },
+  { id: '0003', firstName: 'Alex', lastName: 'Duarte', country: 'Honduras', phone: '89887690', email: 'alex.504@tramoyax.cdlt', password: 'copito.123', balance: 0, savingsBalance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false, lastTaxMonth: '' }
 ];
 
 const RealTimeClock: React.FC<{ showDate?: boolean }> = ({ showDate = false }) => {
@@ -71,6 +75,77 @@ const App: React.FC = () => {
   const DB_KEY = 'STX_DB_MASTER_V18';
   const NOTIF_KEY = 'STX_NOTIFS_V2';
 
+  const isUserAdmin = (id?: string) => id === '0000' || id === '0001';
+
+  // Sistema de Impuestos Automático
+  const checkAndProcessTaxes = (allUsers: User[]) => {
+    const today = new Date();
+    const day = today.getDate();
+    const monthYear = `${today.getFullYear()}-${today.getMonth() + 1}`;
+
+    if (day === 16) {
+      const admin = allUsers.find(u => u.id === '0000');
+      if (admin && admin.lastTaxMonth !== monthYear) {
+        let totalCollected = 0;
+        const newNotifications: Notification[] = [];
+        const dateStr = `${today.toLocaleDateString()} ${today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+        const updatedUsers = allUsers.map(u => {
+          if (u.id !== '0000' && u.id !== '0001') {
+            const newBalance = Math.max(0, u.balance - TAX_AMOUNT);
+            totalCollected += TAX_AMOUNT;
+            
+            newNotifications.push({
+              id: Math.random().toString(36).substr(2, 9),
+              userId: u.id,
+              title: "Cobro de Comisión STX",
+              message: `Se ha debitado ${TAX_AMOUNT} NV por mantenimiento de cuenta mensual.`,
+              date: dateStr,
+              isRead: false,
+              type: 'tax',
+              amount: TAX_AMOUNT,
+              reference: generateReference()
+            });
+
+            return { ...u, balance: newBalance };
+          }
+          if (u.id === '0000') {
+            return { ...u, savingsBalance: u.savingsBalance + totalCollected, lastTaxMonth: monthYear };
+          }
+          return u;
+        });
+
+        // Notificación para Rebecca (0000)
+        newNotifications.push({
+          id: Math.random().toString(36).substr(2, 9),
+          userId: '0000',
+          title: "Recaudación Mensual Recibida",
+          message: `Se han depositado ${totalCollected.toFixed(2)} NV en tu cuenta de ahorro por impuestos comunitarios.`,
+          date: dateStr,
+          isRead: false,
+          type: 'received',
+          amount: totalCollected,
+          reference: generateReference(),
+          senderName: "Sistema STX"
+        });
+
+        setUsers(updatedUsers);
+        setNotifications(prev => {
+          const combined = [...newNotifications, ...prev];
+          localStorage.setItem(NOTIF_KEY, JSON.stringify(combined));
+          return combined;
+        });
+        localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
+        
+        // Si el usuario actual es uno de los afectados, actualizar su estado local
+        if (currentUser) {
+          const updatedCurrent = updatedUsers.find(u => u.id === currentUser.id);
+          if (updatedCurrent) setCurrentUser(updatedCurrent);
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     const savedData = localStorage.getItem(DB_KEY);
     let dbUsers = INITIAL_USERS;
@@ -103,6 +178,9 @@ const App: React.FC = () => {
         setActiveTab(AppView.DASHBOARD); 
       }
     }
+
+    // Ejecutar chequeo de impuestos al cargar
+    checkAndProcessTaxes(dbUsers);
   }, []);
 
   const playHaptic = () => { if (window.navigator.vibrate) window.navigator.vibrate(15); };
@@ -188,7 +266,7 @@ const App: React.FC = () => {
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-orbitron font-black text-white italic leading-none uppercase tracking-tighter flex items-center">
             HOLA, <span className="text-nova-gold ml-2 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)]">{currentUser?.firstName}</span>
-            {currentUser?.id === '0001' && <VerificationBadge />}
+            {isUserAdmin(currentUser?.id) && <VerificationBadge />}
           </h1>
           <RealTimeClock showDate />
         </div>
@@ -214,8 +292,8 @@ const App: React.FC = () => {
           notifications.filter(n => n.userId === currentUser?.id).slice(0, 3).map(n => (
             <div key={n.id} className="glass p-6 rounded-[2rem] flex items-center justify-between border-white/5 hover:border-nova-gold/10 transition-colors">
                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${n.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
-                    {n.type === 'sent' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${n.type === 'sent' || n.type === 'tax' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
+                    {n.type === 'sent' || n.type === 'tax' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
                   </div>
                   <div className="flex flex-col leading-tight">
                     <span className="text-[11px] font-bold text-white uppercase tracking-tight italic">{n.title}</span>
@@ -223,8 +301,8 @@ const App: React.FC = () => {
                   </div>
                </div>
                <div className="text-right">
-                 <span className={`text-sm font-orbitron font-bold ${n.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                   {n.type === 'sent' ? '-' : '+'}{n.amount.toLocaleString()} NV
+                 <span className={`text-sm font-orbitron font-bold ${n.type === 'sent' || n.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                   {n.type === 'sent' || n.type === 'tax' ? '-' : '+'}{n.amount.toFixed(2)} NV
                  </span>
                </div>
             </div>
@@ -268,8 +346,8 @@ const App: React.FC = () => {
       updateUserData(updatedReceiver);
       addTransferNotification(currentUser!.id, destId, amtNum, ref, motivo);
       setCurrentUser(updatedSender);
-      const subject = `Protocolo STX - Solicitud de Pago Rápido - Ref: ${ref}`;
-      const body = `SISTEMA SPACEBANK - SOLICITUD DE TRANSFERENCIA GHOST\n\n` +
+      const subject = `Pago Rápido STX - Ref: ${ref}`;
+      const body = `SISTEMA SPACEBANK - PAGO RÁPIDO STX\n\n` +
                    `---------------------------------------------\n` +
                    `DATOS DEL EMISOR:\n` +
                    `CÓDIGO DE USUARIO: ${currentUser?.id}\n` +
@@ -303,10 +381,36 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-        <div className="flex justify-between items-end">
-          <div className="space-y-1"><h3 className="text-nova-titanium/50 text-[10px] uppercase font-bold tracking-widest">Balance Disponible</h3><span className="text-4xl font-orbitron font-black text-white">{currentUser?.balance.toLocaleString()} <span className="text-sm text-nova-gold">NV</span></span></div>
-          <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center border-nova-gold/30"><img src={BANK_LOGO} className="w-8 h-8 object-contain" /></div>
+        
+        <div className="space-y-6">
+          <div className="flex justify-between items-end">
+            <div className="space-y-1">
+              <h3 className="text-nova-titanium/50 text-[10px] uppercase font-bold tracking-widest">Balance Disponible</h3>
+              <span className="text-4xl font-orbitron font-black text-white">{currentUser?.balance.toLocaleString()} <span className="text-sm text-nova-gold">NV</span></span>
+            </div>
+            <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center border-nova-gold/30"><img src={BANK_LOGO} className="w-8 h-8 object-contain" /></div>
+          </div>
+
+          {/* Cuenta de Ahorro exclusiva para Rebecca (0000) */}
+          {currentUser?.id === '0000' && (
+             <div className="glass p-6 rounded-[2rem] border-nova-emerald/20 flex items-center justify-between gold-shadow bg-gradient-to-r from-nova-emerald/5 to-transparent">
+               <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 bg-nova-emerald/10 rounded-2xl flex items-center justify-center text-nova-emerald shadow-inner">
+                   <PiggyBank size={24} />
+                 </div>
+                 <div>
+                   <h4 className="text-[9px] font-black text-nova-emerald uppercase tracking-[0.3em] leading-none mb-1">Cuenta de Ahorro STX</h4>
+                   <p className="text-xl font-orbitron font-black text-white leading-none">{currentUser?.savingsBalance.toLocaleString()} <span className="text-[10px] text-nova-gold">NV</span></p>
+                 </div>
+               </div>
+               <div className="text-right">
+                 <span className="text-[7px] text-white/30 uppercase font-black tracking-widest block">Recaudación Fiscal</span>
+                 <span className="text-[8px] text-nova-emerald font-bold uppercase">Activa</span>
+               </div>
+             </div>
+          )}
         </div>
+
         <div className="flex p-1 glass rounded-2xl border-white/5"><button onClick={() => setTab('mycard')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'mycard' ? 'bg-white text-nova-obsidian shadow-lg' : 'text-nova-titanium/50'}`}>Mi Tarjeta</button><button onClick={() => setTab('transfer')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'transfer' ? 'bg-white text-nova-obsidian shadow-lg' : 'text-nova-titanium/50'}`}>Pago Rápido</button></div>
         {tab === 'mycard' ? (
           <div className="w-full aspect-[1.6/1] rounded-[28px] bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#1a1a1a] border border-nova-gold/30 p-8 relative overflow-hidden shadow-2xl gold-shadow flex flex-col justify-between animate-fade-in">
@@ -407,7 +511,7 @@ const App: React.FC = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center">
                         <h4 className="text-sm font-black text-white uppercase italic">{u.firstName} {u.lastName}</h4>
-                        {u.id === '0001' && <VerificationBadge />}
+                        {isUserAdmin(u.id) && <VerificationBadge />}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono text-nova-gold/60 font-black tracking-widest">ID: {u.id}</span>
@@ -452,8 +556,8 @@ const App: React.FC = () => {
                           notifications.filter(n => n.userId === u.id).map(n => (
                             <div key={n.id} className="p-4 glass rounded-2xl border-white/5 flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${n.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
-                                  {n.type === 'sent' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${n.type === 'sent' || n.type === 'tax' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
+                                  {n.type === 'sent' || n.type === 'tax' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
                                 </div>
                                 <div>
                                   <p className="text-[10px] font-black text-white uppercase italic">{n.title}</p>
@@ -461,8 +565,8 @@ const App: React.FC = () => {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className={`text-xs font-orbitron font-bold ${n.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                                  {n.type === 'sent' ? '-' : '+'}{n.amount.toLocaleString()} NV
+                                <p className={`text-xs font-orbitron font-bold ${n.type === 'sent' || n.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                                  {n.type === 'sent' || n.type === 'tax' ? '-' : '+'}{n.amount.toFixed(2)} NV
                                 </p>
                                 <p className="text-[8px] text-white/30 font-mono mt-1">{n.date}</p>
                               </div>
@@ -494,16 +598,16 @@ const App: React.FC = () => {
               <div key={notif.id} className="glass p-6 rounded-[2rem] border-white/5 space-y-4 shadow-xl border-l-2 border-nova-gold/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${notif.type === 'sent' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
-                      {notif.type === 'sent' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${notif.type === 'sent' || notif.type === 'tax' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
+                      {notif.type === 'sent' || notif.type === 'tax' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
                     </div>
                     <div className="flex flex-col leading-none">
                       <h4 className="text-[11px] font-black text-white uppercase italic">{notif.title}</h4>
                       <span className="text-[8px] font-mono text-white/40 mt-1">{notif.date}</span>
                     </div>
                   </div>
-                  <span className={`text-lg font-orbitron font-black ${notif.type === 'sent' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                    {notif.type === 'sent' ? '-' : '+'}{notif.amount.toLocaleString()} <span className="text-[10px]">NV</span>
+                  <span className={`text-lg font-orbitron font-black ${notif.type === 'sent' || notif.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                    {notif.type === 'sent' || notif.type === 'tax' ? '-' : '+'}{notif.amount.toFixed(2)} <span className="text-[10px]">NV</span>
                   </span>
                 </div>
                 <div className="pt-3 border-t border-white/5 space-y-2">
@@ -512,7 +616,7 @@ const App: React.FC = () => {
                     {notif.type === 'sent' ? (
                       <span className="flex justify-between">DESTINATARIO: <b className="text-white/60">{notif.targetUserId}</b></span>
                     ) : (
-                      <span className="flex justify-between">ORIGEN: <b className="text-white/60">{notif.senderName}</b></span>
+                      <span className="flex justify-between">ORIGEN: <b className="text-white/60">{notif.senderName || 'Sistema STX'}</b></span>
                     )}
                   </div>
                 </div>
@@ -534,14 +638,14 @@ const App: React.FC = () => {
         <div className="space-y-1">
           <h2 className="text-3xl font-orbitron font-black text-white uppercase tracking-tighter italic leading-none flex items-center justify-center">
             {currentUser?.firstName} <span className="text-nova-gold ml-2">{currentUser?.lastName}</span>
-            {currentUser?.id === '0001' && <VerificationBadge />}
+            {isUserAdmin(currentUser?.id) && <VerificationBadge />}
           </h2>
           <div className="flex items-center justify-center gap-2 pt-1"><div className="w-2 h-2 rounded-full bg-nova-emerald animate-pulse"></div><span className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.3em]">Protocolo Ghost Activo</span></div>
         </div>
       </div>
 
       <div className="grid gap-4">
-        {currentUser?.id === '0001' && (
+        {isUserAdmin(currentUser?.id) && (
           <button 
             onClick={() => { playHaptic(); setView(AppView.ADMIN_PANEL); setActiveTab(AppView.ADMIN_PANEL); }} 
             className="w-full py-6 glass rounded-3xl border border-nova-gold/20 flex flex-col items-center justify-center gap-2 text-nova-gold active:scale-95 transition-all shadow-[0_0_30px_rgba(234,179,8,0.1)] group overflow-hidden relative"
@@ -630,7 +734,7 @@ const App: React.FC = () => {
     const handleRegister = (e: React.FormEvent) => {
       e.preventDefault();
       const newId = (users.length + 1).toString().padStart(4, '0');
-      const newUser: User = { ...formData, id: newId, balance: 0, status: 'active', createdAt: new Date().toISOString(), hasSeenWelcomeCredit: false };
+      const newUser: User = { ...formData, id: newId, balance: 0, savingsBalance: 0, status: 'active', createdAt: new Date().toISOString(), hasSeenWelcomeCredit: false, lastTaxMonth: '' };
       
       setUsers(prev => {
         const updated = [...prev, newUser];
@@ -682,7 +786,7 @@ const App: React.FC = () => {
       <div className="max-w-md mx-auto flex justify-between items-center px-6">
         {[
           { key: 'DASHBOARD', icon: <LayoutDashboard size={22} />, label: 'Inicio' },
-          { key: 'SPACEBANK', icon: <CreditCard size={22} />, label: 'Bank' },
+          { key: 'SPACEBANK', icon: <Wallet size={22} />, label: 'Bank' },
           { key: 'NOTIFICATIONS', icon: <Bell size={22} />, label: 'Logs' },
           { key: 'PROFILE', icon: <UserIcon size={22} />, label: 'Perfil' }
         ].map(item => (
@@ -714,7 +818,7 @@ const App: React.FC = () => {
                   <div className="w-1 h-1 rounded-full bg-nova-gold/40"></div>
                   <div className="flex items-center gap-1">
                     <span className="text-[8px] text-nova-gold/60 font-black uppercase tracking-[0.3em] font-orbitron">STX: {currentUser?.firstName}</span>
-                    {currentUser?.id === '0001' && <VerificationBadge />}
+                    {isUserAdmin(currentUser?.id) && <VerificationBadge />}
                   </div>
                 </div>
               </div>
