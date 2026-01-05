@@ -11,15 +11,6 @@ export enum AppView {
   PROFILE = 'PROFILE'
 }
 
-export interface NewsItem {
-  id: string;
-  category: string;
-  title: string;
-  summary: string;
-  fullContent: string;
-  date: string;
-}
-
 export interface Notification {
   id: string;
   userId: string;
