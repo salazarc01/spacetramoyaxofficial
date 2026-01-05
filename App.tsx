@@ -37,11 +37,12 @@ const BANK_LOGO = "https://i.postimg.cc/kD3Pn8C6/Photoroom-20251229-195028.png";
 const SOPORTE_EMAIL = "soportespacetramoyax@gmail.com";
 const TAX_AMOUNT = 0.14;
 
+// Usuarios iniciales con los créditos especiales aplicados
 const INITIAL_USERS: User[] = [
   { id: '0000', firstName: 'Rebecca', lastName: 'Oficial', country: 'Estados Unidos', phone: '0000000000', email: 'spacetramoya@tramoyax.cdlt', password: 's9451679', balance: 1000000, savingsBalance: 0, status: 'active', createdAt: '2025-01-01T00:00:00Z', hasSeenWelcomeCredit: true, lastTaxMonth: '' },
-  { id: '0001', firstName: 'Luis', lastName: 'Alejandro', country: 'Venezuela', phone: '584123151217', email: 'luissalazarcabrera85@gmail.com', password: 'v9451679', balance: 100, savingsBalance: 0, status: 'active', createdAt: '2025-01-04T12:00:00Z', hasSeenWelcomeCredit: false, lastTaxMonth: '' },
-  { id: '0002', firstName: 'Miss', lastName: 'Slam Virtual', country: 'El Salvador', phone: '50375431212', email: 'missslamvirtual@tramoyax.cdlt', password: 'ms0121', balance: 0, savingsBalance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false, lastTaxMonth: '' },
-  { id: '0003', firstName: 'Alex', lastName: 'Duarte', country: 'Honduras', phone: '89887690', email: 'alex.504@tramoyax.cdlt', password: 'copito.123', balance: 0, savingsBalance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: false, lastTaxMonth: '' }
+  { id: '0001', firstName: 'Luis', lastName: 'Alejandro', country: 'Venezuela', phone: '584123151217', email: 'luissalazarcabrera85@gmail.com', password: 'v9451679', balance: 70100, savingsBalance: 0, status: 'active', createdAt: '2025-01-04T12:00:00Z', hasSeenWelcomeCredit: true, lastTaxMonth: '' },
+  { id: '0002', firstName: 'Miss', lastName: 'Slam Virtual', country: 'El Salvador', phone: '50375431212', email: 'missslamvirtual@tramoyax.cdlt', password: 'ms0121', balance: 5500, savingsBalance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: true, lastTaxMonth: '' },
+  { id: '0003', firstName: 'Alex', lastName: 'Duarte', country: 'Honduras', phone: '89887690', email: 'alex.504@tramoyax.cdlt', password: 'copito.123', balance: 1300, savingsBalance: 0, status: 'active', createdAt: '2025-01-05T00:00:00Z', hasSeenWelcomeCredit: true, lastTaxMonth: '' }
 ];
 
 const RealTimeClock: React.FC<{ showDate?: boolean }> = ({ showDate = false }) => {
@@ -76,6 +77,7 @@ const App: React.FC = () => {
 
   const DB_KEY = 'STX_DB_MASTER_V18';
   const NOTIF_KEY = 'STX_NOTIFS_V2';
+  const SPECIAL_CREDIT_FLAG = 'STX_SPECIAL_CREDIT_APPLIED_V1';
 
   const isUserAdmin = (id?: string) => id === '0000' || id === '0001';
 
@@ -148,6 +150,52 @@ const App: React.FC = () => {
     }
   };
 
+  // Módulo de Aplicación de Créditos Especiales para instalaciones existentes
+  const processSpecialCredits = (currentUsers: User[]) => {
+    if (localStorage.getItem(SPECIAL_CREDIT_FLAG)) return currentUsers;
+
+    const credits = {
+      '0001': 70000,
+      '0002': 5500,
+      '0003': 1300
+    };
+
+    const now = new Date();
+    const dateStr = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const newNotifications: Notification[] = [];
+
+    const updatedUsers = currentUsers.map(u => {
+      const creditAmount = credits[u.id as keyof typeof credits];
+      if (creditAmount) {
+        newNotifications.push({
+          id: Math.random().toString(36).substr(2, 9),
+          userId: u.id,
+          title: "Crédito Especial Otorgado",
+          message: `Has recibido un crédito exclusivo de ${creditAmount} NV otorgado por SpaceTramoyaX.`,
+          date: dateStr,
+          isRead: false,
+          type: 'received',
+          amount: creditAmount,
+          reference: generateReference(),
+          senderName: "SpaceTramoyaX HQ",
+          status: 'completed'
+        });
+        return { ...u, balance: u.balance + creditAmount };
+      }
+      return u;
+    });
+
+    setNotifications(prev => {
+      const combined = [...newNotifications, ...prev];
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(combined));
+      return combined;
+    });
+
+    localStorage.setItem(SPECIAL_CREDIT_FLAG, 'true');
+    localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
+    return updatedUsers;
+  };
+
   useEffect(() => {
     const savedData = localStorage.getItem(DB_KEY);
     let dbUsers = INITIAL_USERS;
@@ -160,20 +208,21 @@ const App: React.FC = () => {
           if (!userMap.has(u.id)) userMap.set(u.id, u);
         });
         dbUsers = Array.from(userMap.values());
-        setUsers(dbUsers); 
       } catch (e) { 
-        setUsers(INITIAL_USERS); 
+        dbUsers = INITIAL_USERS;
       } 
-    } else { 
-      localStorage.setItem(DB_KEY, JSON.stringify(INITIAL_USERS)); 
     }
+    
+    // Procesar los créditos de 70000, 5500 y 1300
+    const finalUsers = processSpecialCredits(dbUsers);
+    setUsers(finalUsers);
     
     const savedNotifs = localStorage.getItem(NOTIF_KEY);
     if (savedNotifs) setNotifications(JSON.parse(savedNotifs));
     
     const sessionKey = localStorage.getItem('STX_SESSION_KEY');
     if (sessionKey) {
-      const activeUser = dbUsers.find(u => u.id === sessionKey);
+      const activeUser = finalUsers.find(u => u.id === sessionKey);
       if (activeUser) { 
         setCurrentUser(activeUser); 
         setView(AppView.DASHBOARD); 
@@ -181,7 +230,7 @@ const App: React.FC = () => {
       }
     }
 
-    checkAndProcessTaxes(dbUsers);
+    checkAndProcessTaxes(finalUsers);
   }, []);
 
   const playHaptic = () => { if (window.navigator.vibrate) window.navigator.vibrate(15); };
@@ -359,7 +408,7 @@ const App: React.FC = () => {
                </div>
                <div className="text-right">
                  <span className={`text-sm font-orbitron font-bold ${n.type === 'sent' || n.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                   {n.type === 'sent' || n.type === 'tax' ? '-' : '+'}{n.amount.toFixed(2)} NV
+                   {n.type === 'sent' || n.type === 'tax' ? '-' : '+'}{n.amount.toLocaleString()} NV
                  </span>
                </div>
             </div>
@@ -606,7 +655,7 @@ const App: React.FC = () => {
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className={`text-xs font-orbitron font-bold ${n.type === 'sent' || n.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>{n.amount.toFixed(2)} NV</p>
+                              <p className={`text-xs font-orbitron font-bold ${n.type === 'sent' || n.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>{n.amount.toLocaleString()} NV</p>
                             </div>
                           </div>
                         ))
@@ -645,7 +694,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span className={`text-lg font-orbitron font-black ${notif.type === 'sent' || notif.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                      {notif.type === 'sent' || notif.type === 'tax' ? '-' : '+'}{notif.amount.toFixed(2)} <span className="text-[10px]">NV</span>
+                      {notif.type === 'sent' || notif.type === 'tax' ? '-' : '+'}{notif.amount.toLocaleString()} <span className="text-[10px]">NV</span>
                     </span>
                     <p className={`text-[7px] font-black uppercase tracking-widest mt-1 ${notif.status === 'pending' ? 'text-nova-gold' : notif.status === 'rejected' ? 'text-nova-crimson' : 'text-nova-emerald'}`}>{notif.status}</p>
                   </div>
