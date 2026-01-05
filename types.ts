@@ -18,11 +18,13 @@ export interface Notification {
   message: string;
   date: string;
   isRead: boolean;
-  type: 'credit' | 'sent' | 'received' | 'tax';
+  type: 'credit' | 'sent' | 'received' | 'tax' | 'pending_transfer';
   amount: number;
   reference: string;
   targetUserId?: string;
   senderName?: string;
+  concept?: string;
+  status?: 'pending' | 'completed' | 'rejected';
 }
 
 export interface User {
@@ -34,9 +36,9 @@ export interface User {
   email: string;
   password?: string;
   balance: number;
-  savingsBalance: number; // Nueva cuenta de ahorro
+  savingsBalance: number;
   status: 'pending' | 'active' | 'blocked';
   createdAt: string;
   hasSeenWelcomeCredit?: boolean;
-  lastTaxMonth?: string; // Para controlar el cobro mensual
+  lastTaxMonth?: string;
 }

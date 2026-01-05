@@ -27,7 +27,9 @@ import {
   Search,
   Users,
   PiggyBank,
-  Wallet
+  Wallet,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { AppView, User, Notification } from './types';
 
@@ -104,7 +106,8 @@ const App: React.FC = () => {
               isRead: false,
               type: 'tax',
               amount: TAX_AMOUNT,
-              reference: generateReference()
+              reference: generateReference(),
+              status: 'completed'
             });
 
             return { ...u, balance: newBalance };
@@ -115,7 +118,6 @@ const App: React.FC = () => {
           return u;
         });
 
-        // Notificación para Rebecca (0000)
         newNotifications.push({
           id: Math.random().toString(36).substr(2, 9),
           userId: '0000',
@@ -126,7 +128,8 @@ const App: React.FC = () => {
           type: 'received',
           amount: totalCollected,
           reference: generateReference(),
-          senderName: "Sistema STX"
+          senderName: "Sistema STX",
+          status: 'completed'
         });
 
         setUsers(updatedUsers);
@@ -137,7 +140,6 @@ const App: React.FC = () => {
         });
         localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
         
-        // Si el usuario actual es uno de los afectados, actualizar su estado local
         if (currentUser) {
           const updatedCurrent = updatedUsers.find(u => u.id === currentUser.id);
           if (updatedCurrent) setCurrentUser(updatedCurrent);
@@ -179,7 +181,6 @@ const App: React.FC = () => {
       }
     }
 
-    // Ejecutar chequeo de impuestos al cargar
     checkAndProcessTaxes(dbUsers);
   }, []);
 
@@ -199,44 +200,100 @@ const App: React.FC = () => {
     });
   };
 
-  const addTransferNotification = (senderId: string, receiverId: string, amount: number, ref: string, concept: string) => {
+  const addTransferRequest = (senderId: string, receiverId: string, amount: number, ref: string, concept: string) => {
     const now = new Date();
     const dateStr = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     
     const senderUser = users.find(u => u.id === senderId);
-    const receiverUser = users.find(u => u.id === receiverId);
 
-    const senderNotif: Notification = {
+    const pendingNotif: Notification = {
       id: Math.random().toString(36).substr(2, 9),
       userId: senderId,
-      title: "Pago Rápido Enviado",
-      message: `Transferencia de ${amount} NV enviada a ${receiverUser?.firstName} (${receiverId}).`,
+      title: "Solicitud de Pago Rápido",
+      message: `Tu solicitud de enviar ${amount} NV a ID ${receiverId} está siendo procesada por el sistema.`,
       date: dateStr,
       isRead: false,
-      type: 'sent',
+      type: 'pending_transfer',
       amount,
       reference: ref,
-      targetUserId: receiverId
-    };
-
-    const receiverNotif: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: receiverId,
-      title: "Pago Rápido Recibido",
-      message: `Has recibido ${amount} NV en tu monedero de ${senderUser?.firstName} (${senderId}).`,
-      date: dateStr,
-      isRead: false,
-      type: 'received',
-      amount,
-      reference: ref,
-      senderName: senderUser ? `${senderUser.firstName} ${senderUser.lastName}` : 'Usuario SpaceTramoya'
+      targetUserId: receiverId,
+      concept,
+      senderName: `${senderUser?.firstName} ${senderUser?.lastName}`,
+      status: 'pending'
     };
 
     setNotifications(prev => {
-      const updated = [senderNotif, receiverNotif, ...prev];
+      const updated = [pendingNotif, ...prev];
       localStorage.setItem(NOTIF_KEY, JSON.stringify(updated));
       return updated;
     });
+  };
+
+  const handleApproveTransfer = (notifId: string) => {
+    const notif = notifications.find(n => n.id === notifId);
+    if (!notif || notif.status !== 'pending') return;
+
+    const sender = users.find(u => u.id === notif.userId);
+    const receiver = users.find(u => u.id === notif.targetUserId);
+
+    if (!sender || !receiver) return alert("Error: Usuarios no encontrados");
+    if (sender.balance < notif.amount) return alert("Error: Saldo insuficiente en el emisor");
+
+    const now = new Date();
+    const dateStr = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+    const updatedSender = { ...sender, balance: sender.balance - notif.amount };
+    const updatedReceiver = { ...receiver, balance: receiver.balance + notif.amount };
+
+    const newUsers = users.map(u => {
+      if (u.id === sender.id) return updatedSender;
+      if (u.id === receiver.id) return updatedReceiver;
+      return u;
+    });
+
+    const sentNotif: Notification = {
+      ...notif,
+      id: Math.random().toString(36).substr(2, 9),
+      title: "Pago Rápido STX Acreditado",
+      message: `Transferencia de ${notif.amount} NV enviada a ${receiver.firstName} procesada con éxito.`,
+      type: 'sent',
+      status: 'completed',
+      date: dateStr
+    };
+
+    const receivedNotif: Notification = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: receiver.id,
+      title: "Pago Rápido Recibido",
+      message: `Has recibido ${notif.amount} NV de ${sender.firstName} (${sender.id}).`,
+      date: dateStr,
+      isRead: false,
+      type: 'received',
+      amount: notif.amount,
+      reference: notif.reference,
+      senderName: `${sender.firstName} ${sender.lastName}`,
+      status: 'completed'
+    };
+
+    const newNotifs = notifications.map(n => n.id === notifId ? { ...n, status: 'completed' as const } : n);
+    const finalNotifs = [sentNotif, receivedNotif, ...newNotifs];
+
+    setUsers(newUsers);
+    setNotifications(finalNotifs);
+    localStorage.setItem(DB_KEY, JSON.stringify(newUsers));
+    localStorage.setItem(NOTIF_KEY, JSON.stringify(finalNotifs));
+
+    if (currentUser?.id === sender.id) setCurrentUser(updatedSender);
+    if (currentUser?.id === receiver.id) setCurrentUser(updatedReceiver);
+    
+    alert("Operación Acreditada Correctamente");
+  };
+
+  const handleRejectTransfer = (notifId: string) => {
+    const newNotifs = notifications.map(n => n.id === notifId ? { ...n, status: 'rejected' as const, title: "Solicitud Rechazada" } : n);
+    setNotifications(newNotifs);
+    localStorage.setItem(NOTIF_KEY, JSON.stringify(newNotifs));
+    alert("Operación Rechazada por el Sistema");
   };
 
   const LandingPage = () => (
@@ -286,10 +343,10 @@ const App: React.FC = () => {
 
       <div className="space-y-5">
         <div className="flex items-center justify-between px-2"><h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Operaciones Recientes</h3><ChevronRight size={14} className="text-white/20" /></div>
-        {notifications.filter(n => n.userId === currentUser?.id).length === 0 ? (
-          <div className="glass p-10 rounded-[2rem] text-center opacity-30 italic"><p className="text-[10px] uppercase font-black tracking-widest leading-relaxed">No hay movimientos registrados en el historial Ghost.</p></div>
+        {notifications.filter(n => n.userId === currentUser?.id && n.status === 'completed').length === 0 ? (
+          <div className="glass p-10 rounded-[2rem] text-center opacity-30 italic"><p className="text-[10px] uppercase font-black tracking-widest leading-relaxed">No hay movimientos acreditados en el sistema central.</p></div>
         ) : (
-          notifications.filter(n => n.userId === currentUser?.id).slice(0, 3).map(n => (
+          notifications.filter(n => n.userId === currentUser?.id && n.status === 'completed').slice(0, 3).map(n => (
             <div key={n.id} className="glass p-6 rounded-[2rem] flex items-center justify-between border-white/5 hover:border-nova-gold/10 transition-colors">
                <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${n.type === 'sent' || n.type === 'tax' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
@@ -340,12 +397,7 @@ const App: React.FC = () => {
     const processFinalAction = () => {
       const amtNum = parseFloat(amount);
       const ref = generateReference();
-      const updatedSender = { ...currentUser!, balance: remainingBalance };
-      const updatedReceiver = { ...targetUser!, balance: targetUser!.balance + amtNum };
-      updateUserData(updatedSender);
-      updateUserData(updatedReceiver);
-      addTransferNotification(currentUser!.id, destId, amtNum, ref, motivo);
-      setCurrentUser(updatedSender);
+      addTransferRequest(currentUser!.id, destId, amtNum, ref, motivo);
       const subject = `Pago Rápido STX - Ref: ${ref}`;
       const body = `SISTEMA SPACEBANK - PAGO RÁPIDO STX\n\n` +
                    `---------------------------------------------\n` +
@@ -356,12 +408,12 @@ const App: React.FC = () => {
                    `CÓDIGO DE USUARIO: ${destId}\n` +
                    `NOMBRE: ${targetUser?.firstName} ${targetUser?.lastName}\n\n` +
                    `DETALLES DE LA OPERACIÓN:\n` +
-                   `MONTO A TRANSFERIR: ${amtNum} NV\n` +
-                   `MONTO RESTANTE: ${remainingBalance} NV\n` +
+                   `MONTO SOLICITADO: ${amtNum} NV\n` +
+                   `MONTO RESTANTE ESTIMADO: ${remainingBalance} NV\n` +
                    `REFERENCIA (20 DÍGITOS): ${ref}\n` +
                    `CONCEPTO: ${motivo}\n` +
                    `---------------------------------------------\n\n` +
-                   `ESTADO: ENVIADO PARA AUTORIZACIÓN CENTRAL`;
+                   `ESTADO: ENVIADO PARA AUTORIZACIÓN CENTRAL (EL DINERO SE DESCONTARÁ AL SER ACREDITADO POR EL SISTEMA)`;
       window.location.href = `mailto:${SOPORTE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       setShowWarning(false);
       setTab('mycard');
@@ -376,7 +428,7 @@ const App: React.FC = () => {
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-nova-obsidian/95 backdrop-blur-xl">
             <div className="glass p-8 rounded-[2.5rem] border-nova-gold/20 max-w-xs w-full space-y-6 text-center shadow-[0_0_50px_rgba(234,179,8,0.2)]">
               <div className="w-16 h-16 bg-nova-gold/10 rounded-full flex items-center justify-center mx-auto"><AlertTriangle className="text-nova-gold" size={32} /></div>
-              <div className="space-y-2"><h3 className="text-lg font-orbitron font-black text-white uppercase italic">Aviso de Salida</h3><p className="text-[10px] text-nova-titanium leading-relaxed uppercase tracking-widest">Vas a salir de la aplicación para procesar la solicitud vía Gmail. ¿Deseas autorizar?</p></div>
+              <div className="space-y-2"><h3 className="text-lg font-orbitron font-black text-white uppercase italic">Aviso de Salida</h3><p className="text-[10px] text-nova-titanium leading-relaxed uppercase tracking-widest">Vas a salir de la aplicación para procesar la solicitud vía Gmail. El dinero no se descontará hasta que el sistema lo autorice.</p></div>
               <div className="grid grid-cols-2 gap-3"><button onClick={() => setShowWarning(false)} className="py-3 bg-white/5 rounded-xl text-[10px] font-bold uppercase tracking-widest">Cancelar</button><button onClick={processFinalAction} className="py-3 bg-nova-gold text-nova-obsidian rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95">Autorizar</button></div>
             </div>
           </div>
@@ -391,7 +443,6 @@ const App: React.FC = () => {
             <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center border-nova-gold/30"><img src={BANK_LOGO} className="w-8 h-8 object-contain" /></div>
           </div>
 
-          {/* Cuenta de Ahorro exclusiva para Rebecca (0000) */}
           {currentUser?.id === '0000' && (
              <div className="glass p-6 rounded-[2rem] border-nova-emerald/20 flex items-center justify-between gold-shadow bg-gradient-to-r from-nova-emerald/5 to-transparent">
                <div className="flex items-center gap-4">
@@ -443,60 +494,67 @@ const App: React.FC = () => {
       );
     }, [searchTerm, users]);
 
+    const pendingRequests = useMemo(() => {
+      return notifications.filter(n => n.type === 'pending_transfer' && n.status === 'pending');
+    }, [notifications]);
+
     return (
-      <div className="pb-32 pt-36 px-6 space-y-8 animate-fade-in max-w-4xl mx-auto overflow-y-auto max-h-screen">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-nova-gold/20 rounded-2xl border border-nova-gold/30">
-              <ShieldAlert size={24} className="text-nova-gold" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-orbitron font-black text-white italic uppercase tracking-tighter italic leading-none">PANEL <span className="text-nova-gold">GHOST</span></h1>
-              <p className="text-[8px] text-nova-gold/50 font-black uppercase tracking-[0.4em] mt-1">Control de Sistemas SpaceTramoya</p>
-            </div>
+      <div className="pb-32 pt-36 px-6 space-y-12 animate-fade-in max-w-4xl mx-auto overflow-y-auto max-h-screen">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-nova-gold/20 rounded-2xl border border-nova-gold/30">
+            <ShieldAlert size={24} className="text-nova-gold" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-orbitron font-black text-white italic uppercase tracking-tighter italic leading-none">PANEL <span className="text-nova-gold">GHOST</span></h1>
+            <p className="text-[8px] text-nova-gold/50 font-black uppercase tracking-[0.4em] mt-1">Control de Sistemas SpaceTramoya</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-            <Users size={16} className="text-nova-gold/40" />
-            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Usuarios</span>
-            <p className="text-xl font-orbitron font-black text-white">{users.length}</p>
-          </div>
-          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-            <CreditCard size={16} className="text-nova-emerald/40" />
-            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Fondos Totales</span>
-            <p className="text-xl font-orbitron font-black text-nova-emerald">{users.reduce((acc, u) => acc + u.balance, 0).toLocaleString()} <span className="text-[10px]">NV</span></p>
-          </div>
-          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-            <TrendingUp size={16} className="text-blue-400/40" />
-            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Movimientos</span>
-            <p className="text-xl font-orbitron font-black text-blue-400">{notifications.length}</p>
-          </div>
-          <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-            <Cpu size={16} className="text-purple-400/40" />
-            <span className="text-[8px] text-nova-titanium uppercase font-bold tracking-widest">Status</span>
-            <p className="text-xl font-orbitron font-black text-purple-400">EN LÍNEA</p>
-          </div>
+        {/* Sección de Solicitudes Pendientes */}
+        <div className="space-y-5">
+           <div className="flex items-center justify-between px-2">
+             <h3 className="text-[10px] font-black text-nova-gold uppercase tracking-[0.4em]">Solicitudes de Pago Pendientes</h3>
+             <span className="text-[10px] text-white/30 font-bold">{pendingRequests.length} Esperando</span>
+           </div>
+           {pendingRequests.length === 0 ? (
+             <div className="glass p-10 rounded-[2rem] text-center opacity-30 italic">
+               <p className="text-[10px] uppercase font-black tracking-widest">Sin solicitudes pendientes en el sistema</p>
+             </div>
+           ) : (
+             <div className="grid gap-4">
+               {pendingRequests.map(req => (
+                 <div key={req.id} className="glass p-6 rounded-[2rem] border-nova-gold/10 space-y-4 animate-fade-in bg-nova-gold/5">
+                   <div className="flex justify-between items-start">
+                     <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 bg-nova-gold/20 rounded-2xl flex items-center justify-center text-nova-gold"><Send size={20} /></div>
+                       <div>
+                         <p className="text-sm font-black text-white uppercase italic">{req.senderName}</p>
+                         <p className="text-[9px] text-white/40 font-mono tracking-widest">SOLICITA ENVIAR A ID: {req.targetUserId}</p>
+                       </div>
+                     </div>
+                     <div className="text-right">
+                       <p className="text-xl font-orbitron font-black text-nova-gold">{req.amount.toFixed(2)} NV</p>
+                       <p className="text-[8px] text-white/20 font-mono uppercase">Ref: {req.reference.slice(0, 10)}...</p>
+                     </div>
+                   </div>
+                   <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                     <p className="text-[9px] text-white/50 italic"><span className="font-black text-nova-gold uppercase mr-2">Concepto:</span> "{req.concept}"</p>
+                   </div>
+                   <div className="flex gap-3">
+                     <button onClick={() => handleRejectTransfer(req.id)} className="flex-1 py-4 bg-nova-crimson/10 text-nova-crimson rounded-2xl text-[10px] font-black uppercase tracking-widest border border-nova-crimson/20 active:scale-95 flex items-center justify-center gap-2"><XCircle size={14} /> Rechazar</button>
+                     <button onClick={() => handleApproveTransfer(req.id)} className="flex-1 py-4 bg-nova-gold text-nova-obsidian rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 flex items-center justify-center gap-2"><CheckCircle2 size={14} /> Autorizar y Acreditar</button>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           )}
         </div>
 
-        <div className="relative">
-          <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-            <Search size={16} className="text-white/20" />
-          </div>
-          <input 
-            type="text" 
-            placeholder="BUSCAR POR NOMBRE O ID..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-black/40 border border-white/5 py-5 pl-14 pr-6 rounded-3xl text-xs font-orbitron font-bold text-white outline-none focus:border-nova-gold/40 transition-all placeholder:text-white/10 uppercase tracking-widest"
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="px-4 flex items-center justify-between">
-            <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Registros de Membresía</h3>
-            <span className="text-[10px] text-nova-gold font-bold italic">{filteredUsers.length} Resultados</span>
+        {/* Resto del Panel (Usuarios) */}
+        <div className="space-y-8">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none"><Search size={16} className="text-white/20" /></div>
+            <input type="text" placeholder="BUSCAR USUARIOS..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-black/40 border border-white/5 py-5 pl-14 pr-6 rounded-3xl text-xs font-orbitron font-bold text-white outline-none focus:border-nova-gold/40 transition-all placeholder:text-white/10 uppercase tracking-widest" />
           </div>
 
           <div className="grid gap-4">
@@ -528,52 +586,31 @@ const App: React.FC = () => {
                       <span className="text-[8px] text-nova-titanium uppercase font-black tracking-widest">Balance Ghost</span>
                       <p className="text-lg font-orbitron font-black text-white">{u.balance.toLocaleString()} <span className="text-[10px] text-nova-gold">NV</span></p>
                     </div>
-                    <button 
-                      onClick={() => setSelectedUserLogs(selectedUserLogs === u.id ? null : u.id)}
-                      className={`p-4 rounded-2xl transition-all active:scale-95 ${selectedUserLogs === u.id ? 'bg-nova-gold text-nova-obsidian' : 'bg-white/5 text-nova-gold'}`}
-                    >
-                      {selectedUserLogs === u.id ? <Settings size={20} className="animate-spin-slow" /> : <Eye size={20} />}
-                    </button>
+                    <button onClick={() => setSelectedUserLogs(selectedUserLogs === u.id ? null : u.id)} className={`p-4 rounded-2xl transition-all active:scale-95 ${selectedUserLogs === u.id ? 'bg-nova-gold text-nova-obsidian' : 'bg-white/5 text-nova-gold'}`}><Eye size={20} /></button>
                   </div>
                 </div>
 
                 {selectedUserLogs === u.id && (
                   <div className="bg-black/40 border-t border-white/5 p-6 animate-fade-in">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h5 className="text-[9px] font-black text-nova-gold uppercase tracking-[0.4em] italic">Log de Transacciones Privado</h5>
-                        <div className="px-3 py-1 bg-white/5 rounded-full">
-                           <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest">Ref. Logs 2025</span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {notifications.filter(n => n.userId === u.id).length === 0 ? (
-                          <div className="p-8 text-center glass rounded-2xl opacity-20 italic">
-                            <p className="text-[9px] uppercase font-black tracking-widest">Sin actividad comercial registrada</p>
-                          </div>
-                        ) : (
-                          notifications.filter(n => n.userId === u.id).map(n => (
-                            <div key={n.id} className="p-4 glass rounded-2xl border-white/5 flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${n.type === 'sent' || n.type === 'tax' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
-                                  {n.type === 'sent' || n.type === 'tax' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-black text-white uppercase italic">{n.title}</p>
-                                  <p className="text-[8px] font-mono text-white/20 mt-1 uppercase tracking-tighter">REF: {n.reference}</p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className={`text-xs font-orbitron font-bold ${n.type === 'sent' || n.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                                  {n.type === 'sent' || n.type === 'tax' ? '-' : '+'}{n.amount.toFixed(2)} NV
-                                </p>
-                                <p className="text-[8px] text-white/30 font-mono mt-1">{n.date}</p>
+                    <div className="space-y-3">
+                      {notifications.filter(n => n.userId === u.id).length === 0 ? (
+                        <div className="p-8 text-center glass rounded-2xl opacity-20 italic"><p className="text-[9px] uppercase font-black tracking-widest">Sin actividad comercial registrada</p></div>
+                      ) : (
+                        notifications.filter(n => n.userId === u.id).map(n => (
+                          <div key={n.id} className="p-4 glass rounded-2xl border-white/5 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${n.type === 'sent' || n.type === 'tax' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}><TrendingUp size={18} /></div>
+                              <div>
+                                <p className="text-[10px] font-black text-white uppercase italic">{n.title}</p>
+                                <p className="text-[8px] font-mono text-white/20 mt-1 uppercase tracking-tighter">STATUS: {n.status}</p>
                               </div>
                             </div>
-                          ))
-                        )}
-                      </div>
+                            <div className="text-right">
+                              <p className={`text-xs font-orbitron font-bold ${n.type === 'sent' || n.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>{n.amount.toFixed(2)} NV</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -595,25 +632,33 @@ const App: React.FC = () => {
             <div className="glass p-10 rounded-[2rem] text-center opacity-30 italic"><p className="text-[10px] uppercase font-black tracking-widest">Sin actividad registrada</p></div>
           ) : (
             myNotifs.map((notif) => (
-              <div key={notif.id} className="glass p-6 rounded-[2rem] border-white/5 space-y-4 shadow-xl border-l-2 border-nova-gold/20">
+              <div key={notif.id} className={`glass p-6 rounded-[2rem] border-white/5 space-y-4 shadow-xl border-l-2 transition-all ${notif.status === 'pending' ? 'border-nova-gold/50 opacity-80' : notif.status === 'rejected' ? 'border-nova-crimson opacity-60' : 'border-nova-emerald'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${notif.type === 'sent' || notif.type === 'tax' ? 'bg-nova-crimson/10 text-nova-crimson' : 'bg-nova-gold/10 text-nova-gold'}`}>
-                      {notif.type === 'sent' || notif.type === 'tax' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                      {notif.type === 'sent' || notif.type === 'tax' ? <TrendingDown size={18} /> : notif.type === 'pending_transfer' ? <Clock size={18} /> : <TrendingUp size={18} />}
                     </div>
                     <div className="flex flex-col leading-none">
                       <h4 className="text-[11px] font-black text-white uppercase italic">{notif.title}</h4>
                       <span className="text-[8px] font-mono text-white/40 mt-1">{notif.date}</span>
                     </div>
                   </div>
-                  <span className={`text-lg font-orbitron font-black ${notif.type === 'sent' || notif.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
-                    {notif.type === 'sent' || notif.type === 'tax' ? '-' : '+'}{notif.amount.toFixed(2)} <span className="text-[10px]">NV</span>
-                  </span>
+                  <div className="text-right">
+                    <span className={`text-lg font-orbitron font-black ${notif.type === 'sent' || notif.type === 'tax' ? 'text-nova-crimson' : 'text-nova-gold'}`}>
+                      {notif.type === 'sent' || notif.type === 'tax' ? '-' : '+'}{notif.amount.toFixed(2)} <span className="text-[10px]">NV</span>
+                    </span>
+                    <p className={`text-[7px] font-black uppercase tracking-widest mt-1 ${notif.status === 'pending' ? 'text-nova-gold' : notif.status === 'rejected' ? 'text-nova-crimson' : 'text-nova-emerald'}`}>{notif.status}</p>
+                  </div>
                 </div>
+                {notif.status === 'pending' && (
+                  <div className="px-4 py-2 bg-nova-gold/10 border border-nova-gold/20 rounded-xl">
+                    <p className="text-[8px] text-nova-gold font-bold uppercase tracking-widest leading-relaxed">Operación en espera de acreditación central por el sistema operativo.</p>
+                  </div>
+                )}
                 <div className="pt-3 border-t border-white/5 space-y-2">
                   <div className="flex flex-col text-[8px] font-mono text-white/40 gap-1 uppercase tracking-tighter">
                     <span className="text-nova-gold/60 font-black">REF: {notif.reference}</span>
-                    {notif.type === 'sent' ? (
+                    {notif.type === 'sent' || notif.type === 'pending_transfer' ? (
                       <span className="flex justify-between">DESTINATARIO: <b className="text-white/60">{notif.targetUserId}</b></span>
                     ) : (
                       <span className="flex justify-between">ORIGEN: <b className="text-white/60">{notif.senderName || 'Sistema STX'}</b></span>
@@ -646,45 +691,20 @@ const App: React.FC = () => {
 
       <div className="grid gap-4">
         {isUserAdmin(currentUser?.id) && (
-          <button 
-            onClick={() => { playHaptic(); setView(AppView.ADMIN_PANEL); setActiveTab(AppView.ADMIN_PANEL); }} 
-            className="w-full py-6 glass rounded-3xl border border-nova-gold/20 flex flex-col items-center justify-center gap-2 text-nova-gold active:scale-95 transition-all shadow-[0_0_30px_rgba(234,179,8,0.1)] group overflow-hidden relative"
-          >
+          <button onClick={() => { playHaptic(); setView(AppView.ADMIN_PANEL); setActiveTab(AppView.ADMIN_PANEL); }} className="w-full py-6 glass rounded-3xl border border-nova-gold/20 flex flex-col items-center justify-center gap-2 text-nova-gold active:scale-95 transition-all shadow-[0_0_30px_rgba(234,179,8,0.1)] group overflow-hidden relative">
             <div className="absolute inset-0 bg-nova-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <ShieldAlert size={28} className="animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-[0.5em] italic">INGRESAR PANEL GHOST</span>
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-transform group-hover:rotate-45">
-              <Lock size={40} />
-            </div>
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-transform group-hover:rotate-45"><Lock size={40} /></div>
           </button>
         )}
 
         <div className="flex items-center justify-between px-2"><h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Datos de Identidad</h3><ShieldCheck size={14} className="text-nova-gold/30" /></div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">ID Sistema</span>
-            <p className="text-sm font-mono font-bold text-white">{currentUser?.id}</p>
-          </div>
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Región</span>
-            <p className="text-sm font-bold text-white uppercase">{currentUser?.country}</p>
-          </div>
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Contacto</span>
-            <p className="text-sm font-bold text-white">+{currentUser?.phone}</p>
-          </div>
-          <div className="glass p-5 rounded-2xl border-white/5 space-y-1">
-            <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Desde</span>
-            <p className="text-sm font-bold text-white uppercase">{new Date(currentUser?.createdAt || '').toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}</p>
-          </div>
-        </div>
-        <div className="glass p-6 rounded-3xl border-white/5 space-y-1">
-          <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Credencial Digital</span>
-          <p className="text-xs font-bold text-white break-all font-mono italic">{currentUser?.email}</p>
-        </div>
-        <div className="glass p-6 rounded-3xl border-white/5 space-y-1">
-          <span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Número de Cuenta STX</span>
-          <p className="text-sm font-mono font-bold text-white">4532 {currentUser?.id.padStart(4, '0')} 8890 1126</p>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1"><span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">ID Sistema</span><p className="text-sm font-mono font-bold text-white">{currentUser?.id}</p></div>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1"><span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Región</span><p className="text-sm font-bold text-white uppercase">{currentUser?.country}</p></div>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1"><span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Contacto</span><p className="text-sm font-bold text-white">+{currentUser?.phone}</p></div>
+          <div className="glass p-5 rounded-2xl border-white/5 space-y-1"><span className="text-[8px] text-nova-gold/40 font-black uppercase tracking-widest">Desde</span><p className="text-sm font-bold text-white uppercase">{new Date(currentUser?.createdAt || '').toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}</p></div>
         </div>
       </div>
 
@@ -702,7 +722,6 @@ const App: React.FC = () => {
         if (!user.hasSeenWelcomeCredit) {
           const updated = { ...user, balance: user.balance + 100, hasSeenWelcomeCredit: true };
           updateUserData(updated);
-          addTransferNotification('0002', user.id, 100, generateReference(), "Bono de Registro");
           setCurrentUser(updated);
         } else { setCurrentUser(user); }
         localStorage.setItem('STX_SESSION_KEY', user.id);
@@ -714,10 +733,7 @@ const App: React.FC = () => {
       <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-nova-obsidian">
         <button onClick={() => setView(AppView.HOME)} className="absolute top-12 left-8 w-12 h-12 glass rounded-full flex items-center justify-center text-white active:scale-90 transition-all border border-white/5 shadow-xl"><ArrowLeft size={20} /></button>
         <div className="w-full max-w-sm space-y-12 animate-fade-in">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-orbitron font-black text-white uppercase italic leading-none">ACCESO <span className="text-nova-gold">SEGURO</span></h1>
-            <p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.4em] leading-none">Protocolo Ghost Autorizado</p>
-          </div>
+          <div className="text-center space-y-2"><h1 className="text-3xl font-orbitron font-black text-white uppercase italic leading-none">ACCESO <span className="text-nova-gold">SEGURO</span></h1><p className="text-[10px] text-nova-titanium font-bold uppercase tracking-[0.4em] leading-none">Protocolo Ghost Autorizado</p></div>
           <form onSubmit={handleLogin} className="space-y-5">
             <input value={idInput} onChange={e => setIdInput(e.target.value)} className="w-full bg-black/40 border border-white/5 p-5 rounded-2xl text-white outline-none focus:border-nova-gold/50 text-sm font-mono shadow-inner" placeholder="ID O EMAIL" required />
             <input type="password" value={passInput} onChange={e => setPassInput(e.target.value)} className="w-full bg-black/40 border border-white/5 p-5 rounded-2xl text-white outline-none focus:border-nova-gold/50 text-sm font-mono shadow-inner" placeholder="PASSWORD" required />
@@ -730,36 +746,21 @@ const App: React.FC = () => {
 
   const RegisterView = () => {
     const [formData, setFormData] = useState({ firstName: '', lastName: '', country: '', phone: '', email: '', password: '' });
-    
     const handleRegister = (e: React.FormEvent) => {
       e.preventDefault();
       const newId = (users.length + 1).toString().padStart(4, '0');
       const newUser: User = { ...formData, id: newId, balance: 0, savingsBalance: 0, status: 'active', createdAt: new Date().toISOString(), hasSeenWelcomeCredit: false, lastTaxMonth: '' };
-      
       setUsers(prev => {
         const updated = [...prev, newUser];
         localStorage.setItem(DB_KEY, JSON.stringify(updated));
         return updated;
       });
-
       const subject = `Protocolo STX - Nuevo Registro de Membresía - ID: ${newId}`;
-      const body = `SISTEMA SPACEBANK - NUEVO REGISTRO DE MEMBRESÍA\n\n` +
-                   `---------------------------------------------\n` +
-                   `ID ASIGNADO: ${newId}\n` +
-                   `NOMBRE COMPLETO: ${formData.firstName} ${formData.lastName}\n` +
-                   `PAÍS: ${formData.country}\n` +
-                   `TELÉFONO/WA: ${formData.phone}\n` +
-                   `EMAIL: ${formData.email}\n` +
-                   `CLAVE: ${formData.password}\n` +
-                   `---------------------------------------------\n\n` +
-                   `ESTADO: PENDIENTE DE VALIDACIÓN CENTRAL`;
-
+      const body = `SISTEMA SPACEBANK - NUEVO REGISTRO DE MEMBRESÍA\n\nID ASIGNADO: ${newId}\nNOMBRE COMPLETO: ${formData.firstName} ${formData.lastName}\nEMAIL: ${formData.email}\n---------------------------------------------\nESTADO: PENDIENTE DE VALIDACIÓN CENTRAL`;
       alert(`REGISTRO INICIADO. TU ID ES: ${newId}. SE ABRIRÁ GMAIL PARA FINALIZAR TU SOLICITUD.`);
       window.location.href = `mailto:${SOPORTE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      
       setView(AppView.LOGIN);
     };
-
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-nova-obsidian overflow-y-auto py-24">
         <button onClick={() => setView(AppView.HOME)} className="absolute top-12 left-8 w-12 h-12 glass rounded-full flex items-center justify-center text-white active:scale-90 transition-all border border-white/5 shadow-xl"><ArrowLeft size={20} /></button>
@@ -842,8 +843,6 @@ const App: React.FC = () => {
         .animate-float { animation: float 4s ease-in-out infinite; } 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } 
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } } 
-        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
       `}</style>
     </div>
   );
